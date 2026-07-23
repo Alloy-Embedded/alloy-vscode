@@ -15,7 +15,7 @@ Do zero ao blink com um clique, em qualquer placa suportada pelo
 
 ## Requisitos
 
-O CLI `alloy` (>= 0.1.0). Em dev: `uv tool install --from <checkout>/alloy/tools/alloy .`
+O CLI `alloy` (>= 0.1.0). Em dev: `uv tool install alloy-embedded  # (ou --from <checkout>/alloy/tools/alloy em dev)`
 ou aponte `alloy.cliPath` nas settings.
 
 ## Desenvolvimento

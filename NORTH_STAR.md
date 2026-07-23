@@ -23,7 +23,7 @@ capacidades; o plugin só remove atrito.
    toolchain) no lado TS.
 2. **A extensão só baixa UMA coisa: o binário `uv`** (pinado, sha256
    verificado, para `~/.alloy/tools/uv`) para então rodar
-   `uv tool install alloy`. Toolchains são SEMPRE do `alloy setup`
+   `uv tool install alloy-embedded`. Toolchains são SEMPRE do `alloy setup`
    (PATH-first: usa o que o sistema já tem; baixa só o que falta, de um
    manifest `toolchains.json` com sha256 DENTRO do pacote do CLI).
 3. **Envelopes JSON versionados** com handshake `alloy --version` contra
@@ -39,7 +39,7 @@ capacidades; o plugin só remove atrito.
 
 ## Decisões (pesquisa 22/jul/2026: auditoria CLI + survey PIO/ESP-IDF/Cortex-Debug/probe-rs)
 
-- **Instalação do CLI**: `uv tool install alloy`. (pipx = 2 pré-requisitos;
+- **Instalação do CLI**: `uv tool install alloy-embedded`. (pipx = 2 pré-requisitos;
   penv próprio = o maior fardo do PlatformIO; PyInstaller = matriz de
   assinatura/notarização em 5 alvos. uv é 1 binário estático.)
 - **Empacotamento (P0)**: o wheel `alloy` EMBUTE o payload do framework
