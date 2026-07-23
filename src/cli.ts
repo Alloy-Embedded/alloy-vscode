@@ -43,7 +43,14 @@ export async function findCli(): Promise<string> {
   ];
   for (const candidate of candidates) {
     try {
-      await execFileP(candidate, ["--version"], { timeout: 10_000 });
+      const { stdout } = await execFileP(candidate, ["--version"], { timeout: 10_000 });
+      // Handshake: OUR CLI prints a bare semver. A real-world collision
+      // exists (the legacy ecosystem shipped an `alloy` printing
+      // "alloy 0.5.1.dev10+…"), so exit-0 alone is not proof.
+      const version = stdout.trim();
+      if (!/^\d+\.\d+\.\d+$/.test(version) || !versionAtLeast(version, MIN_CLI_VERSION)) {
+        continue;
+      }
       cachedCliPath = candidate;
       return candidate;
     } catch {
@@ -53,6 +60,17 @@ export async function findCli(): Promise<string> {
   throw new CliNotFoundError(
     "alloy CLI not found — run “Alloy: Setup Environment” or set alloy.cliPath",
   );
+}
+
+function versionAtLeast(version: string, min: string): boolean {
+  const a = version.split(".").map(Number);
+  const b = min.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) {
+      return a[i] > b[i];
+    }
+  }
+  return true;
 }
 
 function exeName(base: string): string {
