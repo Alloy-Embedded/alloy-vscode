@@ -7,6 +7,7 @@ import { runAction, AlloyTaskProvider } from "./tasks";
 import { newProject, pickBoard } from "./wizard";
 import { startDebug, generateLaunchJson } from "./debug";
 import { AlloyStatusBar } from "./statusbar";
+import { ActionsProvider, ToolsProvider, installTools } from "./views";
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new AlloyStatusBar(context);
@@ -34,10 +35,23 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.tasks.registerTaskProvider("alloy", new AlloyTaskProvider()),
   );
 
+  const actions = new ActionsProvider();
+  const tools = new ToolsProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("alloyActions", actions),
+    vscode.window.registerTreeDataProvider("alloyTools", tools),
+    vscode.commands.registerCommand("alloy.refreshTools", () => tools.refresh()),
+    vscode.commands.registerCommand("alloy.installTools", wrap(installTools)),
+  );
+
   const watcher = vscode.workspace.createFileSystemWatcher("**/alloy.toml");
-  watcher.onDidChange(() => statusBar.refresh());
-  watcher.onDidCreate(() => statusBar.refresh());
-  watcher.onDidDelete(() => statusBar.refresh());
+  const refreshAll = () => {
+    statusBar.refresh();
+    actions.refresh();
+  };
+  watcher.onDidChange(refreshAll);
+  watcher.onDidCreate(refreshAll);
+  watcher.onDidDelete(refreshAll);
   context.subscriptions.push(watcher);
 
   statusBar.refresh();

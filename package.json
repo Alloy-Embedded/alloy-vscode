@@ -60,6 +60,15 @@
       {
         "command": "alloy.generateLaunchJson",
         "title": "Alloy: Generate Debug Configuration (launch.json)"
+      },
+      {
+        "command": "alloy.refreshTools",
+        "title": "Alloy: Refresh Toolchains",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "alloy.installTools",
+        "title": "Alloy: Install Missing Tools"
       }
     ],
     "taskDefinitions": [
@@ -89,6 +98,50 @@
           "description": "Path to the alloy CLI. Empty = search uv tool shims and PATH."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "alloy",
+          "title": "Alloy",
+          "icon": "media/alloy.svg"
+        }
+      ]
+    },
+    "views": {
+      "alloy": [
+        {
+          "id": "alloyActions",
+          "name": "Projeto",
+          "icon": "media/alloy.svg"
+        },
+        {
+          "id": "alloyTools",
+          "name": "Toolchains",
+          "icon": "media/alloy.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "alloyActions",
+        "contents": "Bem-vindo ao Alloy \u2014 um app C++23 port\u00e1vel, qualquer MCU suportado.\n\n[Novo Projeto](command:alloy.newProject)\n\n[Configurar Ambiente](command:alloy.setup)\n\nAbra uma pasta com alloy.toml para ver build/flash/monitor.",
+        "when": "workbenchState == empty"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "alloy.refreshTools",
+          "when": "view == alloyTools",
+          "group": "navigation"
+        },
+        {
+          "command": "alloy.newProject",
+          "when": "view == alloyActions",
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {
