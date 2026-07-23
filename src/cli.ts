@@ -12,6 +12,8 @@ import * as vscode from "vscode";
 
 const execFileP = promisify(execFile);
 
+export const output = vscode.window.createOutputChannel("Alloy");
+
 export const MIN_CLI_VERSION = "0.1.0";
 
 export interface BoardInfo {
@@ -49,9 +51,14 @@ export async function findCli(): Promise<string> {
       // "alloy 0.5.1.dev10+…"), so exit-0 alone is not proof.
       const version = stdout.trim();
       if (!/^\d+\.\d+\.\d+$/.test(version) || !versionAtLeast(version, MIN_CLI_VERSION)) {
+        output.appendLine(
+          `rejected ${candidate}: --version printed "${version}" ` +
+          `(want bare semver >= ${MIN_CLI_VERSION} — a legacy 'alloy' CLI?)`,
+        );
         continue;
       }
       cachedCliPath = candidate;
+      output.appendLine(`using CLI: ${candidate} (v${version})`);
       return candidate;
     } catch {
       // try the next one
@@ -88,6 +95,7 @@ export async function runCli(
   cwd?: string,
 ): Promise<RunResult> {
   const cli = await findCli();
+  output.appendLine(`$ ${cli} ${args.join(" ")}${cwd ? `  (cwd: ${cwd})` : ""}`);
   try {
     const { stdout, stderr } = await execFileP(cli, args, {
       cwd,
@@ -97,7 +105,7 @@ export async function runCli(
     return { stdout, stderr };
   } catch (err) {
     const anyErr = err as { stderr?: string; message: string };
-    throw new Error(anyErr.stderr?.trim() || anyErr.message);
+    throw new Error(`${anyErr.stderr?.trim() || anyErr.message} (cli: ${cli})`);
   }
 }
 
@@ -106,7 +114,11 @@ export async function listBoards(cwd?: string): Promise<BoardInfo[]> {
   const { stdout } = await runCli(["boards", "--json"], cwd);
   const envelope = JSON.parse(stdout) as { schema: string; boards: BoardInfo[] };
   if (envelope.schema !== "alloy.boards.v1") {
-    throw new Error(`unsupported boards envelope: ${envelope.schema}`);
+    const cli = await findCli();
+    throw new Error(
+      `unsupported boards envelope "${envelope.schema}" from ${cli} — ` +
+      "a legacy 'alloy' CLI may be shadowing the real one; set alloy.cliPath",
+    );
   }
   return envelope.boards;
 }
