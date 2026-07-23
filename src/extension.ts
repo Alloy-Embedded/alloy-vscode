@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { setupEnvironment } from "./bootstrap";
 import { runAction, AlloyTaskProvider } from "./tasks";
 import { newProject, pickBoard } from "./wizard";
+import { startDebug, generateLaunchJson } from "./debug";
 import { AlloyStatusBar } from "./statusbar";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -28,6 +29,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("alloy.run", wrap(() => runAction("run"))),
     vscode.commands.registerCommand("alloy.monitor", wrap(() => runAction("monitor"))),
     vscode.commands.registerCommand("alloy.clean", wrap(() => runAction("clean"))),
+    vscode.commands.registerCommand("alloy.debug", wrap(startDebug)),
+    vscode.commands.registerCommand("alloy.generateLaunchJson", wrap(generateLaunchJson)),
     vscode.tasks.registerTaskProvider("alloy", new AlloyTaskProvider()),
   );
 

@@ -1,33 +1,82 @@
 {
   "name": "alloy-vscode",
   "displayName": "Alloy Embedded",
-  "description": "Zero-to-blink for the Alloy embedded framework: setup, new project, build, flash, run, monitor — same code on every supported MCU.",
+  "description": "Zero-to-blink for the Alloy embedded framework: setup, new project, build, flash, run, monitor \u2014 same code on every supported MCU.",
   "version": "0.1.0",
   "publisher": "alloy-embedded",
-  "repository": { "type": "git", "url": "https://github.com/Alloy-Embedded/alloy-vscode.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Alloy-Embedded/alloy-vscode.git"
+  },
   "license": "MIT",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Other"],
-  "activationEvents": ["workspaceContains:alloy.toml"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:alloy.toml"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "alloy.setup", "title": "Alloy: Setup Environment" },
-      { "command": "alloy.newProject", "title": "Alloy: New Project" },
-      { "command": "alloy.pickBoard", "title": "Alloy: Pick Board" },
-      { "command": "alloy.build", "title": "Alloy: Build" },
-      { "command": "alloy.flash", "title": "Alloy: Flash" },
-      { "command": "alloy.run", "title": "Alloy: Run (Flash + Monitor)" },
-      { "command": "alloy.monitor", "title": "Alloy: Monitor" },
-      { "command": "alloy.clean", "title": "Alloy: Clean" }
+      {
+        "command": "alloy.setup",
+        "title": "Alloy: Setup Environment"
+      },
+      {
+        "command": "alloy.newProject",
+        "title": "Alloy: New Project"
+      },
+      {
+        "command": "alloy.pickBoard",
+        "title": "Alloy: Pick Board"
+      },
+      {
+        "command": "alloy.build",
+        "title": "Alloy: Build"
+      },
+      {
+        "command": "alloy.flash",
+        "title": "Alloy: Flash"
+      },
+      {
+        "command": "alloy.run",
+        "title": "Alloy: Run (Flash + Monitor)"
+      },
+      {
+        "command": "alloy.monitor",
+        "title": "Alloy: Monitor"
+      },
+      {
+        "command": "alloy.clean",
+        "title": "Alloy: Clean"
+      },
+      {
+        "command": "alloy.debug",
+        "title": "Alloy: Debug"
+      },
+      {
+        "command": "alloy.generateLaunchJson",
+        "title": "Alloy: Generate Debug Configuration (launch.json)"
+      }
     ],
     "taskDefinitions": [
       {
         "type": "alloy",
-        "required": ["action"],
+        "required": [
+          "action"
+        ],
         "properties": {
-          "action": { "type": "string", "description": "build | flash | run | monitor | clean | gen" },
-          "board": { "type": "string", "description": "board id override (optional)" }
+          "action": {
+            "type": "string",
+            "description": "build | flash | run | monitor | clean | gen"
+          },
+          "board": {
+            "type": "string",
+            "description": "board id override (optional)"
+          }
         }
       }
     ],
@@ -46,13 +95,16 @@
     "typecheck": "tsc --noEmit",
     "bundle": "node esbuild.mjs",
     "build": "npm run typecheck && npm run bundle",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "test": "npm run build && node test/runTest.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.24.0",
+    "mocha": "^11.7.6",
     "typescript": "^5.5.0"
   }
 }

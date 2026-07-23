@@ -1,0 +1,23 @@
+#!/bin/sh
+# Stubbed alloy CLI for extension integration tests.
+case "$1" in
+  --version) echo "0.1.0" ;;
+  boards)
+    cat <<'JSON'
+{"schema": "alloy.boards.v1", "boards": [
+  {"id": "nucleo_g0b1re", "name": "Nucleo G0B1RE", "chip": "st/stm32g0b1",
+   "probe": "stlink", "roles": ["led", "debug_uart"]}]}
+JSON
+    ;;
+  debug-info)
+    cat <<'JSON'
+{"schema": "alloy.debug_info.v1", "board": "nucleo_g0b1re",
+ "chip": "st/STM32G0B1RE", "elf": null, "svd": null, "supported": true,
+ "servertype": "openocd", "interface_cfg": "interface/stlink.cfg",
+ "target_cfg": "target/stm32g0x.cfg", "device": "STM32G0B1RE",
+ "chip_id": "STM32G0B1RETx", "gdb": "arm-none-eabi-gdb"}
+JSON
+    ;;
+  build|flash|run|monitor|clean|gen) echo "stub: $1 ok" ;;
+  *) echo "stub: unhandled verb $1" >&2; exit 1 ;;
+esac
