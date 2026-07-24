@@ -123,6 +123,29 @@ export async function listBoards(cwd?: string): Promise<BoardInfo[]> {
   return envelope.boards;
 }
 
+export interface LibraryInfo {
+  name: string;
+  category: string;
+  summary: string;
+  version: string;
+  concepts: string[];
+  source: string;
+}
+
+/** lib list --json (alloy.libs.v1) — the ecosystem driver registry. */
+export async function listLibraries(cwd?: string): Promise<LibraryInfo[]> {
+  const { stdout } = await runCli(["lib", "list", "--json"], cwd);
+  const envelope = JSON.parse(stdout) as { schema: string; libraries: LibraryInfo[] };
+  if (envelope.schema !== "alloy.libs.v1") {
+    const cli = await findCli();
+    throw new Error(
+      `unsupported libraries envelope "${envelope.schema}" from ${cli} — ` +
+      "an out-of-date alloy CLI? update with: uv tool upgrade alloy-embedded",
+    );
+  }
+  return envelope.libraries;
+}
+
 /** The board currently selected in the workspace's alloy.toml. */
 export function currentBoard(workspaceRoot: string): string | null {
   const tomlPath = path.join(workspaceRoot, "alloy.toml");

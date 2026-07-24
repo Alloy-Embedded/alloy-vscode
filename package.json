@@ -69,6 +69,16 @@
       {
         "command": "alloy.installTools",
         "title": "Alloy: Install Missing Tools"
+      },
+      {
+        "command": "alloy.addLibrary",
+        "title": "Alloy: Add Library",
+        "icon": "$(add)"
+      },
+      {
+        "command": "alloy.refreshLibraries",
+        "title": "Alloy: Refresh Libraries",
+        "icon": "$(refresh)"
       }
     ],
     "taskDefinitions": [
@@ -116,6 +126,11 @@
           "icon": "media/alloy.svg"
         },
         {
+          "id": "alloyLibraries",
+          "name": "Bibliotecas",
+          "icon": "media/alloy.svg"
+        },
+        {
           "id": "alloyTools",
           "name": "Toolchains",
           "icon": "media/alloy.svg"
@@ -139,6 +154,16 @@
         {
           "command": "alloy.newProject",
           "when": "view == alloyActions",
+          "group": "navigation"
+        },
+        {
+          "command": "alloy.addLibrary",
+          "when": "view == alloyLibraries",
+          "group": "navigation"
+        },
+        {
+          "command": "alloy.refreshLibraries",
+          "when": "view == alloyLibraries",
           "group": "navigation"
         }
       ]

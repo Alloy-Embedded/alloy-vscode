@@ -16,6 +16,7 @@ describe("alloy-vscode smoke", () => {
       "alloy.flash", "alloy.run", "alloy.monitor", "alloy.clean",
       "alloy.debug", "alloy.generateLaunchJson",
       "alloy.refreshTools", "alloy.installTools",
+      "alloy.addLibrary", "alloy.refreshLibraries",
     ]) {
       assert.ok(all.includes(cmd), `missing command ${cmd}`);
     }

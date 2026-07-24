@@ -18,6 +18,20 @@ JSON
  "chip_id": "STM32G0B1RETx", "gdb": "arm-none-eabi-gdb"}
 JSON
     ;;
+  lib)
+    case "$2" in
+      list)
+        cat <<'JSON'
+{"schema": "alloy.libs.v1", "libraries": [
+  {"name": "sht31", "category": "sensor",
+   "summary": "Sensirion SHT3x temperature + humidity (I2C)", "version": "0.1.0",
+   "concepts": ["I2cBus", "DelayNs"], "source": "path:libs/sht31"}]}
+JSON
+        ;;
+      add) echo "stub: lib add $3 ok" ;;
+      *) echo "stub: unhandled lib $2" >&2; exit 1 ;;
+    esac
+    ;;
   build|flash|run|monitor|clean|gen) echo "stub: $1 ok" ;;
   *) echo "stub: unhandled verb $1" >&2; exit 1 ;;
 esac

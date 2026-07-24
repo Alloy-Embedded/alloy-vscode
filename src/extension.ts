@@ -8,17 +8,20 @@ import { newProject, pickBoard } from "./wizard";
 import { startDebug, generateLaunchJson } from "./debug";
 import { AlloyStatusBar } from "./statusbar";
 import { ActionsProvider, ToolsProvider, installTools } from "./views";
+import { LibrariesProvider, addLibrary } from "./libraries";
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new AlloyStatusBar(context);
 
-  const wrap = (fn: () => Promise<void>) => async () => {
-    try {
-      await fn();
-    } catch (err) {
-      void vscode.window.showErrorMessage(`Alloy: ${(err as Error).message}`);
-    }
-  };
+  const wrap =
+    (fn: (...args: unknown[]) => Promise<void>) =>
+    async (...args: unknown[]) => {
+      try {
+        await fn(...args);
+      } catch (err) {
+        void vscode.window.showErrorMessage(`Alloy: ${(err as Error).message}`);
+      }
+    };
 
   context.subscriptions.push(
     vscode.commands.registerCommand("alloy.setup", wrap(setupEnvironment)),
@@ -37,17 +40,24 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const actions = new ActionsProvider();
   const tools = new ToolsProvider();
+  const libraries = new LibrariesProvider();
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("alloyActions", actions),
     vscode.window.registerTreeDataProvider("alloyTools", tools),
+    vscode.window.registerTreeDataProvider("alloyLibraries", libraries),
     vscode.commands.registerCommand("alloy.refreshTools", () => tools.refresh()),
     vscode.commands.registerCommand("alloy.installTools", wrap(installTools)),
+    vscode.commands.registerCommand("alloy.refreshLibraries", () => libraries.refresh()),
+    vscode.commands.registerCommand("alloy.addLibrary",
+      wrap((name?: unknown) =>
+        addLibrary(() => libraries.refresh(), typeof name === "string" ? name : undefined))),
   );
 
   const watcher = vscode.workspace.createFileSystemWatcher("**/alloy.toml");
   const refreshAll = () => {
     statusBar.refresh();
     actions.refresh();
+    libraries.refresh();
   };
   watcher.onDidChange(refreshAll);
   watcher.onDidCreate(refreshAll);

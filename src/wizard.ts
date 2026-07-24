@@ -4,19 +4,43 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { listBoards, runCli, workspaceRoot } from "./cli";
 
+function vendorOf(chip: string): string {
+  return chip.split("/")[0] || "other";
+}
+
 export async function newProject(): Promise<void> {
   const boards = await listBoards();
-  const picked = await vscode.window.showQuickPick(
-    boards.map((b) => ({
-      label: b.id,
-      description: b.name,
-      detail: `chip: ${b.chip}   probe: ${b.probe ?? "none"}   roles: ${b.roles.join(", ")}`,
+
+  // Step 1/3 — vendor. Grouping keeps the picker manageable as the board list
+  // grows (PlatformIO-style: choose the silicon vendor first).
+  const vendors = [...new Set(boards.map((b) => vendorOf(b.chip)))].sort();
+  const vendor = await vscode.window.showQuickPick(
+    vendors.map((v) => ({
+      label: v,
+      description: `${boards.filter((b) => vendorOf(b.chip) === v).length} board(s)`,
     })),
-    { placeHolder: "Board for the new project", matchOnDescription: true },
+    { placeHolder: "New project (1/3) — MCU vendor" },
+  );
+  if (!vendor) {
+    return;
+  }
+
+  // Step 2/3 — board within that vendor.
+  const picked = await vscode.window.showQuickPick(
+    boards
+      .filter((b) => vendorOf(b.chip) === vendor.label)
+      .map((b) => ({
+        label: b.id,
+        description: b.name,
+        detail: `chip: ${b.chip}   probe: ${b.probe ?? "none"}   roles: ${b.roles.join(", ")}`,
+      })),
+    { placeHolder: "New project (2/3) — board", matchOnDescription: true, matchOnDetail: true },
   );
   if (!picked) {
     return;
   }
+
+  // Step 3/3 — name.
   const name = await vscode.window.showInputBox({
     prompt: "Project name",
     validateInput: (v) =>
