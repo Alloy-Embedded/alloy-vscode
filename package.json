@@ -122,12 +122,12 @@
       "alloy": [
         {
           "id": "alloyActions",
-          "name": "Projeto",
+          "name": "Project",
           "icon": "media/alloy.svg"
         },
         {
           "id": "alloyLibraries",
-          "name": "Bibliotecas",
+          "name": "Libraries",
           "icon": "media/alloy.svg"
         },
         {
@@ -140,7 +140,7 @@
     "viewsWelcome": [
       {
         "view": "alloyActions",
-        "contents": "Bem-vindo ao Alloy \u2014 um app C++23 port\u00e1vel, qualquer MCU suportado.\n\n[Novo Projeto](command:alloy.newProject)\n\n[Configurar Ambiente](command:alloy.setup)\n\nAbra uma pasta com alloy.toml para ver build/flash/monitor.",
+        "contents": "Welcome to Alloy \u2014 one portable C++23 app, any supported MCU.\n\n[New Project](command:alloy.newProject)\n\n[Set Up Environment](command:alloy.setup)\n\nOpen a folder with alloy.toml to see build / flash / monitor.",
         "when": "workbenchState == empty"
       }
     ],

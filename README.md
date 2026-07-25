@@ -1,38 +1,49 @@
 # Alloy Embedded — VS Code Extension
 
-Do zero ao blink com um clique, em qualquer placa suportada pelo
-[framework Alloy](https://github.com/Alloy-Embedded/alloy).
+Zero-to-blink on any supported board — and any MCU — for the
+[Alloy framework](https://github.com/Alloy-Embedded/alloy). One portable C++23 app, any silicon.
 
-## O que faz
+## What it does
 
-- **Alloy: New Project** — assistente em 3 passos: escolhe **fabricante → placa**
-  (dados do `alloy boards --json`), nomeia e faz o scaffold. Sem editar config na mão.
-- **Bibliotecas (drivers)** — navega o registro de drivers do ecossistema
-  (sensores, displays, RTCs…) agrupado por categoria no painel lateral, e
-  **adiciona** um com um clique (`alloy lib add`) — ele é vendorizado no projeto e
-  entra no build automaticamente. `#include <sht31.hpp>` e pronto.
-- **Alloy: Setup Environment** — verifica/instala toolchains via `alloy setup`
-  (tudo visível no terminal; a extensão nunca baixa toolchain por conta própria)
-- **Statusbar + painel** — placa atual + build / flash / run / monitor / debug em um clique
-- **Tasks** tipo `alloy` (build/flash/run/monitor/clean/gen) com problem
-  matcher GCC — erros de compilação caem no painel Problems
-- **Alloy: Pick Board** — troca a placa do projeto (`alloy set-board`)
+- **Alloy: New Project** — a wizard with two paths:
+  - **From a supported board** — pick vendor → board, name it, scaffold.
+  - **Custom board — choose an MCU** — pick any chip from the database; you get a clean, editable
+    board (`boards/<name>/board.json`) with the MCU and a safe clock set, and you fill in the pins.
+    Free to build for whatever silicon you want.
+- **Libraries (drivers)** — browse the driver registry (sensors, displays, RTCs…) grouped by
+  category in the side bar, and **add** one with a click (`alloy lib add`) — it's vendored into the
+  project and wired into the build automatically. `#include <sht31.hpp>` and go.
+- **Alloy: Setup Environment** — verify/install toolchains via `alloy setup` (all visible in the
+  terminal; the extension never downloads a toolchain on its own).
+- **Status bar + panel** — current board plus build / flash / run / monitor / debug, one click each.
+- **Tasks** of type `alloy` (build/flash/run/monitor/clean/gen) with a GCC problem matcher —
+  compile errors land in the Problems panel.
+- **Alloy: Pick Board** — switch the project's board (`alloy set-board`).
 
-IntelliSense funciona de cara: `alloy build` emite `compile_commands.json`, então o
-clangd pega todos os includes/defines sem configuração extra.
+IntelliSense works out of the box: `alloy build` emits `compile_commands.json`, so clangd picks up
+every include and define with no extra setup.
 
-## Requisitos
+## Requirements
 
-O CLI `alloy` (>= 0.1.0). Em dev: `uv tool install alloy-embedded  # (ou --from <checkout>/alloy/tools/alloy em dev)`
-ou aponte `alloy.cliPath` nas settings.
+The `alloy` CLI (>= 0.1.0):
 
-## Desenvolvimento
+```
+uv tool install alloy-embedded      # or: pipx install alloy-embedded
+```
+
+For a source checkout, point `alloy.cliPath` at it in settings (e.g. a wrapper that runs
+`uv --project <checkout>/tools/alloy run alloy`). The Libraries view and custom-board wizard need a
+recent CLI (`lib list --json`, `chips --json`).
+
+## Development
 
 ```
 npm install
-npm run build      # typecheck + bundle
-# F5 no VS Code abre o Extension Development Host
+npm run build      # typecheck + bundle (esbuild -> dist/)
+npm test           # headless VS Code integration tests
+# F5 in VS Code opens the Extension Development Host
 npx vsce package --no-dependencies
 ```
 
-Arquitetura e guardrails: [NORTH_STAR.md](NORTH_STAR.md).
+Architecture and guardrails: [NORTH_STAR.md](NORTH_STAR.md). The CLI is the brain — the extension
+holds no domain logic; every fact comes through `alloy … --json`.

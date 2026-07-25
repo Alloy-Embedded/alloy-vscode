@@ -32,6 +32,12 @@ JSON
       *) echo "stub: unhandled lib $2" >&2; exit 1 ;;
     esac
     ;;
+  chips)
+    cat <<'JSON'
+{"schema": "alloy.chips.v1", "chips": [
+  {"id": "st/stm32g071rb", "vendor": "st", "chip": "stm32g071rb", "family": "stm32g0", "core": "cm0plus"}]}
+JSON
+    ;;
   build|flash|run|monitor|clean|gen) echo "stub: $1 ok" ;;
   *) echo "stub: unhandled verb $1" >&2; exit 1 ;;
 esac

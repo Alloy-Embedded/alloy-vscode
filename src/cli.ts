@@ -146,6 +146,27 @@ export async function listLibraries(cwd?: string): Promise<LibraryInfo[]> {
   return envelope.libraries;
 }
 
+export interface ChipInfo {
+  id: string;
+  vendor: string;
+  chip: string;
+  family: string;
+  core: string | null;
+}
+
+/** chips --json (alloy.chips.v1) — every MCU you can scaffold a clean board for. */
+export async function listChips(): Promise<ChipInfo[]> {
+  const { stdout } = await runCli(["chips", "--json"]);
+  const envelope = JSON.parse(stdout) as { schema: string; chips: ChipInfo[] };
+  if (envelope.schema !== "alloy.chips.v1") {
+    throw new Error(
+      `unsupported chips envelope "${envelope.schema}" — update the alloy CLI ` +
+      "(uv tool upgrade alloy-embedded)",
+    );
+  }
+  return envelope.chips;
+}
+
 /** The board currently selected in the workspace's alloy.toml. */
 export function currentBoard(workspaceRoot: string): string | null {
   const tomlPath = path.join(workspaceRoot, "alloy.toml");

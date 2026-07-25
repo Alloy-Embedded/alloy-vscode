@@ -87,8 +87,8 @@ export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
     if (node.status === "missing") {
       item.iconPath = new vscode.ThemeIcon(
         "error", new vscode.ThemeColor("errorForeground"));
-      item.description = node.kind === "system" ? node.remedy : "faltando — clique p/ instalar";
-      item.tooltip = node.remedy ?? `instala via: alloy setup`;
+      item.description = node.kind === "system" ? node.remedy : "missing — click to install";
+      item.tooltip = node.remedy ?? `install with: alloy setup`;
       item.command = { command: "alloy.installTools", title: "Install" };
     } else {
       item.iconPath = new vscode.ThemeIcon(
@@ -104,7 +104,7 @@ export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
       await findCli();
     } catch (err) {
       if (err instanceof CliNotFoundError) {
-        return [{ error: "alloy CLI não instalado — clique para configurar" }];
+        return [{ error: "alloy CLI not installed — click to set up" }];
       }
       throw err;
     }
@@ -112,7 +112,7 @@ export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
       const { stdout } = await runCli(["setup", "--check", "--json"]);
       const envelope = JSON.parse(stdout) as { schema: string; tools: ToolRow[] };
       if (envelope.schema !== "alloy.setup.v1") {
-        return [{ error: `envelope inesperado: ${envelope.schema}` }];
+        return [{ error: `unexpected envelope: ${envelope.schema}` }];
       }
       return envelope.tools;
     } catch (err) {
@@ -127,6 +127,6 @@ export async function installTools(): Promise<void> {
   terminal.show();
   terminal.sendText(`${/\s/.test(cli) ? `"${cli}"` : cli} setup`);
   void vscode.window.showInformationMessage(
-    "Instalando toolchains no terminal — clique em ↻ no painel quando terminar.",
+    "Installing toolchains in the terminal — click the ↻ in the panel when it finishes.",
   );
 }
