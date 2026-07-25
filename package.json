@@ -34,6 +34,10 @@
         "title": "Alloy: Pick Board"
       },
       {
+        "command": "alloy.configureBoard",
+        "title": "Alloy: Configure Board (clock, pins)"
+      },
+      {
         "command": "alloy.build",
         "title": "Alloy: Build"
       },

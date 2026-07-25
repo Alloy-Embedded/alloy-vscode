@@ -18,6 +18,7 @@ const ACTIONS: ActionSpec[] = [
   { label: "New Project", icon: "new-folder", command: "alloy.newProject", needsProject: false },
   { label: "Setup Environment", icon: "desktop-download", command: "alloy.setup", needsProject: false },
   { label: "Pick Board", icon: "circuit-board", command: "alloy.pickBoard", needsProject: true },
+  { label: "Configure Board", icon: "settings-gear", command: "alloy.configureBoard", needsProject: true },
   { label: "Build", icon: "tools", command: "alloy.build", needsProject: true },
   { label: "Flash", icon: "zap", command: "alloy.flash", needsProject: true },
   { label: "Run (Flash + Monitor)", icon: "vm-running", command: "alloy.run", needsProject: true },

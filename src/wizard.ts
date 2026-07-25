@@ -39,7 +39,7 @@ async function openProject(parentPath: string, name: string): Promise<void> {
   );
 }
 
-export async function newProject(): Promise<void> {
+export async function newProject(context?: vscode.ExtensionContext): Promise<void> {
   const mode = await vscode.window.showQuickPick(
     [
       { label: "$(circuit-board) From a supported board", detail: "A ready-made board — recommended", mode: "board" },
@@ -50,7 +50,7 @@ export async function newProject(): Promise<void> {
   if (!mode) {
     return;
   }
-  await (mode.mode === "chip" ? newFromChip() : newFromBoard());
+  await (mode.mode === "chip" ? newFromChip(context) : newFromBoard());
 }
 
 async function newFromBoard(): Promise<void> {
@@ -87,7 +87,7 @@ async function newFromBoard(): Promise<void> {
   await openProject(np.parent, np.name);
 }
 
-async function newFromChip(): Promise<void> {
+async function newFromChip(context?: vscode.ExtensionContext): Promise<void> {
   const chips = await listChips();
   const vendors = [...new Set(chips.map((c) => c.vendor))].sort();
   const vendor = await vscode.window.showQuickPick(
@@ -114,9 +114,9 @@ async function newFromChip(): Promise<void> {
     return;
   }
   await runCli(["new", np.name, "--chip", chip.label], np.parent);
-  void vscode.window.showInformationMessage(
-    `Clean board for ${chip.label} created. Edit boards/${np.name}/board.json to add your pins (led, uart, i2c…).`,
-  );
+  // Open the visual board configurator once the new window loads (the folder
+  // reload disposes this session, so hand off through globalState).
+  await context?.globalState.update("alloy.configureOnOpen", path.join(np.parent, np.name));
   await openProject(np.parent, np.name);
 }
 

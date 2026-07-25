@@ -167,6 +167,29 @@ export async function listChips(): Promise<ChipInfo[]> {
   return envelope.chips;
 }
 
+export interface ChipDetail {
+  chip: string;
+  family: string | null;
+  clock_profiles: { name: string; description: string; sysclk_hz: number | null }[];
+  boot_profile: string | null;
+  gpio_pins: string[];
+  peripherals: {
+    debug_uart: { peripheral: string; tx?: string; rx?: string }[];
+    i2c: { peripheral: string; scl?: string; sda?: string }[];
+    spi: { peripheral: string; sck?: string; mosi?: string; miso?: string }[];
+  };
+}
+
+/** chip-info <chip> — clock profiles + pins + peripherals for the visual editor. */
+export async function chipInfo(chip: string, cwd?: string): Promise<ChipDetail> {
+  const { stdout } = await runCli(["chip-info", chip], cwd);
+  const info = JSON.parse(stdout) as ChipDetail & { schema: string };
+  if ((info as { schema: string }).schema !== "alloy.chip_info.v1") {
+    throw new Error("unsupported chip-info envelope — update the alloy CLI");
+  }
+  return info;
+}
+
 /** The board currently selected in the workspace's alloy.toml. */
 export function currentBoard(workspaceRoot: string): string | null {
   const tomlPath = path.join(workspaceRoot, "alloy.toml");

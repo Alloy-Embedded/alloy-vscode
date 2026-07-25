@@ -12,7 +12,7 @@ describe("alloy-vscode smoke", () => {
   it("registers every alloy command", async () => {
     const all = await vscode.commands.getCommands(true);
     for (const cmd of [
-      "alloy.setup", "alloy.newProject", "alloy.pickBoard", "alloy.build",
+      "alloy.setup", "alloy.newProject", "alloy.pickBoard", "alloy.configureBoard", "alloy.build",
       "alloy.flash", "alloy.run", "alloy.monitor", "alloy.clean",
       "alloy.debug", "alloy.generateLaunchJson",
       "alloy.refreshTools", "alloy.installTools",

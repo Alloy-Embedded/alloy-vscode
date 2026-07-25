@@ -9,6 +9,8 @@ import { startDebug, generateLaunchJson } from "./debug";
 import { AlloyStatusBar } from "./statusbar";
 import { ActionsProvider, ToolsProvider, installTools } from "./views";
 import { LibrariesProvider, addLibrary } from "./libraries";
+import { configureBoard } from "./boardEditor";
+import { workspaceRoot } from "./cli";
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new AlloyStatusBar(context);
@@ -25,7 +27,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("alloy.setup", wrap(setupEnvironment)),
-    vscode.commands.registerCommand("alloy.newProject", wrap(newProject)),
+    vscode.commands.registerCommand("alloy.newProject", wrap(() => newProject(context))),
     vscode.commands.registerCommand("alloy.pickBoard",
       wrap(() => pickBoard(() => statusBar.refresh()))),
     vscode.commands.registerCommand("alloy.build", wrap(() => runAction("build"))),
@@ -51,7 +53,17 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("alloy.addLibrary",
       wrap((name?: unknown) =>
         addLibrary(() => libraries.refresh(), typeof name === "string" ? name : undefined))),
+    vscode.commands.registerCommand("alloy.configureBoard",
+      wrap(() => configureBoard(() => { actions.refresh(); statusBar.refresh(); }))),
   );
+
+  // A freshly-scaffolded custom board opens the visual configurator once its
+  // window loads (the wizard hands the path off through globalState).
+  const pending = context.globalState.get<string>("alloy.configureOnOpen");
+  if (pending && workspaceRoot() === pending) {
+    void context.globalState.update("alloy.configureOnOpen", undefined);
+    void vscode.commands.executeCommand("alloy.configureBoard");
+  }
 
   const watcher = vscode.workspace.createFileSystemWatcher("**/alloy.toml");
   const refreshAll = () => {
