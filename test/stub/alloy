@@ -1,5 +1,9 @@
 #!/bin/sh
-# Stubbed alloy CLI for extension integration tests.
+# Stubbed alloy CLI for extension integration tests. Verbs that the E2E flow must
+# actually reach write a marker into $ALLOY_STUB_DIR (set by runTest.js) so a test
+# can assert "the extension invoked this exact CLI call" without a real toolchain.
+mark() { [ -n "$ALLOY_STUB_DIR" ] && printf '%s\n' "$*" >"$ALLOY_STUB_DIR/$1"; }
+
 case "$1" in
   --version) echo "0.1.0" ;;
   boards)
@@ -28,7 +32,7 @@ JSON
    "concepts": ["I2cBus", "DelayNs"], "source": "path:libs/sht31"}]}
 JSON
         ;;
-      add) echo "stub: lib add $3 ok" ;;
+      add) mark "lib-add-$3" "$@"; echo "stub: lib add $3 ok" ;;
       *) echo "stub: unhandled lib $2" >&2; exit 1 ;;
     esac
     ;;
@@ -38,6 +42,43 @@ JSON
   {"id": "st/stm32g071rb", "vendor": "st", "chip": "stm32g071rb", "family": "stm32g0", "core": "cm0plus"}]}
 JSON
     ;;
+  chip-info)
+    # alloy.chip_info.v1 — feeds the visual board configurator.
+    cat <<'JSON'
+{"schema": "alloy.chip_info.v1", "chip": "st/stm32g0b1", "family": "stm32g0",
+ "boot_profile": null,
+ "clock_profiles": [
+   {"name": "hsi_16mhz", "description": "HSI 16 MHz (default, no PLL)", "sysclk_hz": 16000000},
+   {"name": "pll_64mhz", "description": "HSI16 -> PLL 64 MHz", "sysclk_hz": 64000000}],
+ "gpio_pins": ["pa5", "pa2", "pa3", "pb8", "pb9", "pb3", "pb4", "pb5"],
+ "peripherals": {
+   "debug_uart": [{"peripheral": "usart2", "tx": "pa2", "rx": "pa3"}],
+   "i2c": [{"peripheral": "i2c1", "scl": "pb8", "sda": "pb9"}],
+   "spi": [{"peripheral": "spi1", "sck": "pb3", "miso": "pb4", "mosi": "pb5"}]}}
+JSON
+    ;;
+  clock)
+    # alloy.clock.v1 — parametric PLL solve for the configurator's custom preset.
+    cat <<'JSON'
+{"schema": "alloy.clock.v1", "sysclk_hz": 48000000, "wait_states": 1,
+ "silicon_validated": false,
+ "pll": {"m": 1, "n": 12, "div": 4, "vco_hz": 192000000},
+ "profile": {"description": "custom 48 MHz", "sysclk_hz": 48000000,
+   "ahb_hz": 48000000, "apb_hz": 48000000, "program": []}}
+JSON
+    ;;
+  new)
+    # `alloy new <name> --board|--chip <id>` — scaffold a project dir (cwd is the
+    # chosen parent). Create it like the real CLI so the wizard's openProject finds
+    # it, and mark the call for the test.
+    name="$2"
+    mkdir -p "$name/src"
+    printf '[project]\nname = "%s"\n' "$name" >"$name/alloy.toml"
+    mark "new-$name" "$@"
+    echo "stub: new $name ok"
+    ;;
+  set-board) mark "set-board-$2" "$@"; echo "stub: set-board $2 ok" ;;
+  setup) mark "setup" "$@"; echo "stub: setup ok" ;;
   build|flash|run|monitor|clean|gen) echo "stub: $1 ok" ;;
   *) echo "stub: unhandled verb $1" >&2; exit 1 ;;
 esac

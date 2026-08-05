@@ -1,5 +1,16 @@
 const assert = require("node:assert");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const vscode = require("vscode");
+
+async function waitFor(cond, ms) {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    if (cond()) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
 
 describe("alloy-vscode smoke", () => {
   it("activates on the alloy.toml workspace", async () => {
@@ -36,5 +47,60 @@ describe("alloy-vscode smoke", () => {
     });
     await vscode.commands.executeCommand("alloy.build");
     await done;
+  });
+
+  it("adds a driver library end-to-end (alloy lib add)", async () => {
+    const markers = process.env.ALLOY_STUB_DIR;
+    assert.ok(markers, "ALLOY_STUB_DIR not set by runTest.js");
+    const marker = path.join(markers, "lib-add-sht31");
+    fs.rmSync(marker, { force: true });
+    // The command passes the name straight through, so no quick-pick is needed.
+    await vscode.commands.executeCommand("alloy.addLibrary", "sht31");
+    await waitFor(() => fs.existsSync(marker), 10000);
+    assert.ok(fs.existsSync(marker), "extension never invoked `alloy lib add sht31`");
+  });
+
+  it("creates a project from a board end-to-end (alloy new --board)", async () => {
+    const markers = process.env.ALLOY_STUB_DIR;
+    const parent = fs.mkdtempSync(path.join(os.tmpdir(), "avt-new-"));
+    const projName = "e2e_board_proj";
+    const marker = path.join(markers, `new-${projName}`);
+    fs.rmSync(marker, { force: true });
+
+    const orig = {
+      showQuickPick: vscode.window.showQuickPick,
+      showInputBox: vscode.window.showInputBox,
+      showOpenDialog: vscode.window.showOpenDialog,
+      executeCommand: vscode.commands.executeCommand,
+    };
+    try {
+      // The wizard asks: mode (board/chip), vendor, board — always take the first
+      // (board mode; vendor "st"; board "nucleo_g0b1re", the only stubbed board).
+      vscode.window.showQuickPick = async (items) => {
+        const arr = Array.isArray(items) ? items : await items;
+        return arr[0];
+      };
+      vscode.window.showInputBox = async () => projName;
+      vscode.window.showOpenDialog = async () => [vscode.Uri.file(parent)];
+      // openProject would reload the test window; swallow only that one command.
+      vscode.commands.executeCommand = async (cmd, ...args) =>
+        cmd === "vscode.openFolder"
+          ? undefined
+          : orig.executeCommand.call(vscode.commands, cmd, ...args);
+
+      await orig.executeCommand.call(vscode.commands, "alloy.newProject");
+      await waitFor(() => fs.existsSync(marker), 10000);
+    } finally {
+      vscode.window.showQuickPick = orig.showQuickPick;
+      vscode.window.showInputBox = orig.showInputBox;
+      vscode.window.showOpenDialog = orig.showOpenDialog;
+      vscode.commands.executeCommand = orig.executeCommand;
+    }
+
+    assert.ok(fs.existsSync(marker), "extension never invoked `alloy new … --board`");
+    assert.ok(
+      fs.existsSync(path.join(parent, projName, "alloy.toml")),
+      "the new project was not scaffolded in the chosen parent",
+    );
   });
 });
