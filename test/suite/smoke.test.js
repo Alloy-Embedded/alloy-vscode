@@ -49,6 +49,14 @@ describe("alloy-vscode smoke", () => {
     await done;
   });
 
+  it("opens the chip configurator (pin map + clock) on the custom board", async () => {
+    // The fixture has boards/nucleo_g0b1re/board.json (a custom board), so the
+    // configurator must open: this exercises chipInfo (including the per-pin
+    // "pins" payload from the stub) and renderHtml end-to-end. A parse/render
+    // regression rejects this promise.
+    await vscode.commands.executeCommand("alloy.configureBoard");
+  });
+
   it("adds a driver library end-to-end (alloy lib add)", async () => {
     const markers = process.env.ALLOY_STUB_DIR;
     assert.ok(markers, "ALLOY_STUB_DIR not set by runTest.js");

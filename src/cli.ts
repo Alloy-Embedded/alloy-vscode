@@ -167,12 +167,27 @@ export async function listChips(): Promise<ChipInfo[]> {
   return envelope.chips;
 }
 
+export interface PinFunction {
+  peripheral: string;
+  signal: string;
+  af?: number;
+}
+
+export interface PinInfo {
+  name: string;
+  port: string | null;
+  index: number | null;
+  functions: PinFunction[];
+}
+
 export interface ChipDetail {
   chip: string;
   family: string | null;
   clock_profiles: { name: string; description: string; sysclk_hz: number | null }[];
   boot_profile: string | null;
   gpio_pins: string[];
+  /** Per-pin function map (CubeMX-style picker data). Absent on pre-pins CLIs. */
+  pins?: PinInfo[];
   peripherals: {
     debug_uart: { peripheral: string; tx?: string; rx?: string }[];
     i2c: { peripheral: string; scl?: string; sda?: string }[];

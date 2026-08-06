@@ -51,6 +51,12 @@ JSON
    {"name": "hsi_16mhz", "description": "HSI 16 MHz (default, no PLL)", "sysclk_hz": 16000000},
    {"name": "pll_64mhz", "description": "HSI16 -> PLL 64 MHz", "sysclk_hz": 64000000}],
  "gpio_pins": ["pa5", "pa2", "pa3", "pb8", "pb9", "pb3", "pb4", "pb5"],
+ "pins": [
+   {"name": "pa2", "port": "a", "index": 2, "functions": [{"peripheral": "usart2", "signal": "tx", "af": 1}]},
+   {"name": "pa3", "port": "a", "index": 3, "functions": [{"peripheral": "usart2", "signal": "rx", "af": 1}]},
+   {"name": "pa5", "port": "a", "index": 5, "functions": [{"peripheral": "tim2", "signal": "ch1", "af": 2}]},
+   {"name": "pb8", "port": "b", "index": 8, "functions": [{"peripheral": "i2c1", "signal": "scl", "af": 6}]},
+   {"name": "pb9", "port": "b", "index": 9, "functions": [{"peripheral": "i2c1", "signal": "sda", "af": 6}]}],
  "peripherals": {
    "debug_uart": [{"peripheral": "usart2", "tx": "pa2", "rx": "pa3"}],
    "i2c": [{"peripheral": "i2c1", "scl": "pb8", "sda": "pb9"}],

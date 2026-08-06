@@ -1,0 +1,8 @@
+{
+  "schema": "alloy.board.v1",
+  "id": "nucleo_g0b1re",
+  "name": "Fixture custom board",
+  "chip": "st/stm32g0b1",
+  "clock_profile": "hsi_16mhz",
+  "roles": {}
+}
