@@ -206,6 +206,26 @@ export async function chipInfo(chip: string, cwd?: string): Promise<ChipDetail> 
 }
 
 /** The board currently selected in the workspace's alloy.toml. */
+/** ports --json (alloy.ports.v1) — serial-port enumeration for pickers. */
+export async function listPorts(cwd?: string): Promise<{ device: string; description: string }[]> {
+  const { stdout } = await runCli(["ports", "--json"], cwd);
+  const envelope = JSON.parse(stdout) as { schema: string; ports: { device: string; description: string }[] };
+  if (envelope.schema !== "alloy.ports.v1") {
+    throw new Error("unsupported ports envelope — update the alloy CLI");
+  }
+  return envelope.ports;
+}
+
+/** The project name from alloy.toml — the built ELF is named after it. */
+export function projectName(workspaceRoot: string): string | null {
+  const tomlPath = path.join(workspaceRoot, "alloy.toml");
+  if (!fs.existsSync(tomlPath)) {
+    return null;
+  }
+  const match = /\[project\]\s*\n\s*name\s*=\s*"([^"]+)"/.exec(fs.readFileSync(tomlPath, "utf8"));
+  return match ? match[1] : null;
+}
+
 export function currentBoard(workspaceRoot: string): string | null {
   const tomlPath = path.join(workspaceRoot, "alloy.toml");
   if (!fs.existsSync(tomlPath)) {

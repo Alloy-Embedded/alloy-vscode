@@ -36,6 +36,14 @@ JSON
       *) echo "stub: unhandled lib $2" >&2; exit 1 ;;
     esac
     ;;
+  ports)
+    cat <<'JSON'
+{"schema": "alloy.ports.v1", "ports": [
+  {"device": "/dev/fake0", "description": "Stub USB-UART"}]}
+JSON
+    ;;
+  image) echo "stub: image ok" ;;
+  update) mark "update" "$@"; echo "stub: update ok" ;;
   chips)
     cat <<'JSON'
 {"schema": "alloy.chips.v1", "chips": [

@@ -10,6 +10,7 @@ import { AlloyStatusBar } from "./statusbar";
 import { ActionsProvider, ToolsProvider, installTools } from "./views";
 import { LibrariesProvider, addLibrary } from "./libraries";
 import { configureBoard } from "./boardEditor";
+import { updateDevice } from "./updateDevice";
 import { workspaceRoot } from "./cli";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -53,6 +54,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("alloy.addLibrary",
       wrap((name?: unknown) =>
         addLibrary(() => libraries.refresh(), typeof name === "string" ? name : undefined))),
+    vscode.commands.registerCommand("alloy.updateDevice", wrap(updateDevice)),
     vscode.commands.registerCommand("alloy.configureBoard",
       wrap(() => configureBoard(() => { actions.refresh(); statusBar.refresh(); }))),
   );

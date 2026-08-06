@@ -27,7 +27,7 @@ describe("alloy-vscode smoke", () => {
       "alloy.flash", "alloy.run", "alloy.monitor", "alloy.clean",
       "alloy.debug", "alloy.generateLaunchJson",
       "alloy.refreshTools", "alloy.installTools",
-      "alloy.addLibrary", "alloy.refreshLibraries",
+      "alloy.addLibrary", "alloy.refreshLibraries", "alloy.updateDevice",
     ]) {
       assert.ok(all.includes(cmd), `missing command ${cmd}`);
     }
@@ -55,6 +55,36 @@ describe("alloy-vscode smoke", () => {
     // "pins" payload from the stub) and renderHtml end-to-end. A parse/render
     // regression rejects this promise.
     await vscode.commands.executeCommand("alloy.configureBoard");
+  });
+
+  it("updates a device end-to-end (ports -> build both slots -> alloy update)", async () => {
+    const markers = process.env.ALLOY_STUB_DIR;
+    const marker = path.join(markers, "update");
+    fs.rmSync(marker, { force: true });
+    const orig = { showQuickPick: vscode.window.showQuickPick, showInputBox: vscode.window.showInputBox };
+    const done = new Promise((resolve, reject) => {
+      const sub = vscode.tasks.onDidEndTaskProcess((e) => {
+        if (e.execution.task.definition.action === "update") {
+          sub.dispose();
+          e.exitCode === 0 ? resolve() : reject(new Error(`update task exited ${e.exitCode}`));
+        }
+      });
+      setTimeout(() => reject(new Error("update task never finished")), 20000);
+    });
+    try {
+      vscode.window.showQuickPick = async (items) => (Array.isArray(items) ? items : await items)[0];
+      vscode.window.showInputBox = async () => "123";
+      await vscode.commands.executeCommand("alloy.updateDevice");
+      await done;
+    } finally {
+      vscode.window.showQuickPick = orig.showQuickPick;
+      vscode.window.showInputBox = orig.showInputBox;
+    }
+    await waitFor(() => fs.existsSync(marker), 5000);
+    const args = fs.readFileSync(marker, "utf8");
+    assert.match(args, /--port \/dev\/fake0/);
+    assert.match(args, /--image-a/);
+    assert.match(args, /--image-b/);
   });
 
   it("adds a driver library end-to-end (alloy lib add)", async () => {

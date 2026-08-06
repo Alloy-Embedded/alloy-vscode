@@ -38,6 +38,10 @@
         "title": "Alloy: Configure Board (clock, pins)"
       },
       {
+        "command": "alloy.updateDevice",
+        "title": "Alloy: Update Device (UART)"
+      },
+      {
         "command": "alloy.build",
         "title": "Alloy: Build"
       },

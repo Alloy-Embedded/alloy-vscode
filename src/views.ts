@@ -21,6 +21,7 @@ const ACTIONS: ActionSpec[] = [
   { label: "Configure Board", icon: "settings-gear", command: "alloy.configureBoard", needsProject: true },
   { label: "Build", icon: "tools", command: "alloy.build", needsProject: true },
   { label: "Flash", icon: "zap", command: "alloy.flash", needsProject: true },
+  { label: "Update Device (UART)", icon: "cloud-upload", command: "alloy.updateDevice", needsProject: true },
   { label: "Run (Flash + Monitor)", icon: "vm-running", command: "alloy.run", needsProject: true },
   { label: "Monitor", icon: "pulse", command: "alloy.monitor", needsProject: true },
   { label: "Debug", icon: "debug-alt", command: "alloy.debug", needsProject: true },
