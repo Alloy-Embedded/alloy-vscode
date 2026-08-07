@@ -455,20 +455,45 @@ async function packageTests(ed, data) {
   assert.ok(ed.renderPinMap(logical, withPkg).includes("portname"),
     "the per-port view must still work when the package is available");
 
-  // A BGA is a grid, not four sides.
+  // A BGA is a grid, not four sides — and a DEPOPULATED one, which is the
+  // thing this got wrong: packing each row left-to-right drew a part whose
+  // centre has no balls as if every ball were crowded against the left edge.
   const bga = {
-    type: "UFBGA4", pins: 4, layout: [
+    type: "UFBGA8", pins: 8, layout: [
       { position: "A1", signal: "pa0", kind: "gpio" },
       { position: "A2", signal: "pa1", kind: "gpio" },
+      { position: "A4", signal: "pa2", kind: "gpio" },   // A3 is not populated
       { position: "B1", signal: "vdd", kind: "power" },
-      { position: "B2", signal: "vss", kind: "ground" },
+      { position: "B4", signal: "vss", kind: "ground" }, // hollow middle
+      { position: "C1", signal: "pa3", kind: "gpio" },
+      { position: "C2", signal: "pa4", kind: "gpio" },
+      { position: "C4", signal: "nrst", kind: "reset" },
     ],
   };
   const grid = ed.renderPackage(ed.initialState(withPkg), bga, {}, new Set());
   assert.ok(grid.includes("pk grid") && grid.includes("pk-rowlabel"));
-  assert.ok(grid.includes("4 balls"), "a BGA has balls, not pins");
+  assert.ok(grid.includes("8 balls"), "a BGA has balls, not pins");
   assert.ok(!grid.includes("pk-top"), "a grid has no sides to lay pins along");
   assert.ok(grid.includes("pk-ball"), "balls, not the quad pin cells");
+
+  // Every row is the full width of the grid, with a placeholder where the
+  // part has no ball — that is what makes a hollow centre visible.
+  const rowsOf = (html) => html.split('<div class="pk-row">').slice(1);
+  const rows = rowsOf(grid);
+  assert.equal(rows.length, 4, "a header row plus A, B and C");
+  for (const row of rows.slice(1)) {
+    assert.equal((row.match(/class="pk-ball/g) || []).length, 4,
+      "each row must span all 4 columns");
+  }
+  // Row B has balls at 1 and 4 only: columns 2 and 3 must be EMPTY, not the
+  // next balls shifted left.
+  const rowB = rows[2];
+  const cells = [...rowB.matchAll(/class="pk-ball([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(cells.map((c) => c.includes("empty")),
+    [false, true, true, false],
+    "the hollow middle of row B must be drawn as gaps");
+  // And the column numbers are labelled, or a grid position is unreadable.
+  assert.equal((rows[0].match(/class="pk-collabel"/g) || []).length, 4);
 
   // Device data is not markup, here either.
   const nasty = { ...pkg, part: "<script>x</script>" };

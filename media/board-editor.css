@@ -306,8 +306,14 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   width: 13px; font-size: 9px; color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family, monospace);
 }
+.pk-collabel {
+  width: 46px; text-align: center; font-size: 9px;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+.pk-ball.empty { border: none; background: none; }
 .pk-ball {
-  width: 42px; height: 18px; border-radius: 3px; font-size: 8px;
+  width: 46px; height: 18px; border-radius: 3px; font-size: 8px;
   font-family: var(--vscode-editor-font-family, monospace);
   border: 1px solid var(--vscode-panel-border); background: transparent;
   color: var(--vscode-foreground); cursor: pointer; padding: 0;

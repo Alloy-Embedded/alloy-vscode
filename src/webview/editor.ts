@@ -385,24 +385,50 @@ export function renderPackage(state: State, pkg: ChipPackage,
   };
 
   if (isGrid) {
-    const rows = new Map<string, ChipPackage["layout"]>();
+    // A ball goes at its OWN column, not the next free one. Most grid arrays
+    // are depopulated in the middle, and packing each row left-to-right draws
+    // those parts as if every ball were crowded to one side — a wrong picture
+    // of where the balls physically are.
+    const at = new Map<string, ChipPackage["layout"][number]>();
+    let maxCol = 0;
+    const rowsSeen: string[] = [];
     for (const entry of pkg.layout) {
-      const row = entry.position.replace(/\d+$/, "");
-      rows.set(row, [...(rows.get(row) ?? []), entry]);
+      const m = /^([A-Za-z]+)(\d+)$/.exec(entry.position);
+      if (!m) {
+        continue;
+      }
+      const [, row, col] = m;
+      if (!rowsSeen.includes(row)) {
+        rowsSeen.push(row);
+      }
+      maxCol = Math.max(maxCol, Number(col));
+      at.set(`${row}:${Number(col)}`, entry);
     }
-    const body = [...rows.entries()].sort(([a], [b]) => a.localeCompare(b))
-      .map(([row, entries]) => `<div class="pk-row"><span class="pk-rowlabel">${
-        esc(row)}</span>${entries
-          .sort((a, b) => Number(a.position.replace(/\D/g, ""))
-                        - Number(b.position.replace(/\D/g, "")))
-          .map((e) => `<button class="pk-ball${
-            owned[e.signal] ? " role" : state.pins[e.signal] ? " gpio"
-            : ASSIGNABLE.has(e.kind) ? "" : " supply"}"`
-            + `${ASSIGNABLE.has(e.kind) && !owned[e.signal]
-                ? ` data-pin="${esc(e.signal)}"` : " disabled"}`
-            + ` title="${esc(`${e.position} · ${e.signal}`)}">${esc(e.signal)}</button>`)
-          .join("")}</div>`).join("");
-    return `<div class="pk-scroll"><div class="pk grid">${body}</div></div>
+    const rows = rowsSeen.sort((a, b) => a.localeCompare(b));
+
+    const header = `<div class="pk-row"><span class="pk-rowlabel"></span>${
+      Array.from({ length: maxCol }, (_, i) =>
+        `<span class="pk-collabel">${i + 1}</span>`).join("")}</div>`;
+
+    const body = rows.map((row) => `<div class="pk-row">`
+      + `<span class="pk-rowlabel">${esc(row)}</span>`
+      + Array.from({ length: maxCol }, (_, i) => {
+        const entry = at.get(`${row}:${i + 1}`);
+        if (!entry) {
+          return `<span class="pk-ball empty"></span>`;
+        }
+        const state_ = badPins.has(entry.signal) ? " bad"
+          : owned[entry.signal] ? " role"
+          : state.pins[entry.signal] ? " gpio"
+          : ASSIGNABLE.has(entry.kind) ? "" : " supply";
+        const clickable = ASSIGNABLE.has(entry.kind) && !owned[entry.signal];
+        return `<button class="pk-ball${state_}"`
+          + `${clickable ? ` data-pin="${esc(entry.signal)}"` : " disabled"}`
+          + ` title="${esc(`${entry.position} · ${entry.signal}`)}">${
+            esc(entry.signal)}</button>`;
+      }).join("") + `</div>`).join("");
+
+    return `<div class="pk-scroll"><div class="pk grid">${header}${body}</div></div>
       <div class="pk-caption">${esc(pkg.part ?? pkg.type)} · ${esc(pkg.type)} · ${
         pkg.pins} balls</div>`;
   }

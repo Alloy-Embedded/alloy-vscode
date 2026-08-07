@@ -19,20 +19,26 @@ const built = await esbuild.build({
 const ed = await import("data:text/javascript;base64,"
   + Buffer.from(built.outputFiles[0].text).toString("base64"));
 
-const chipInfo = JSON.parse(execFileSync(
-  process.env.HOME + "/.local/bin/alloy",
-  ["chip-info", process.argv[2] || "microchip/atsame70q21"], { encoding: "utf8" }));
+// Either a chip id (asks the CLI) or a JSON file holding {chip, package} —
+// the second form is how a package the database does not ship yet gets looked
+// at, without changing the database to see it.
+const arg = process.argv[2] || "microchip/atsame70q21";
+const chipInfo = arg.endsWith(".json")
+  ? JSON.parse(readFileSync(arg, "utf8"))
+  : JSON.parse(execFileSync(process.env.HOME + "/.local/bin/alloy",
+                            ["chip-info", arg], { encoding: "utf8" }));
 if (!chipInfo.package) {
   console.error(`${chipInfo.chip}: no package data — nothing to draw`);
   process.exit(1);
 }
+const out = process.argv[3] || "pkg-preview.html";
 const data = { chip: chipInfo, detail: { editable: true, issues: [] },
                board: { id: "same70_xplained", chip: "microchip/atsame70q21", roles: {} } };
 const state = ed.initialState(data);
 const owned = { pa5: "led", pb0: "debug_uart tx", pb1: "debug_uart rx" };
 const html = ed.renderPackage(state, chipInfo.package, owned, new Set(["pd0"]));
 
-writeFileSync("pkg-preview.html", `<!doctype html><html><head><meta charset="utf-8">
+writeFileSync(out, `<!doctype html><html><head><meta charset="utf-8">
 <style>
 :root{--vscode-font-family:system-ui;--vscode-foreground:#ccc;--vscode-panel-border:#3c3c3c;
 --vscode-editor-background:#1e1e1e;--vscode-editorWidget-background:#252526;
@@ -51,4 +57,4 @@ ${readFileSync("media/board-editor.css", "utf8")}
 <div><fieldset><legend>Pinout</legend>${html}</fieldset></div>
 <div class="right">painel de roles (deve ficar intocado)</div>
 </div></body></html>`);
-console.log("wrote pkg-preview.html");
+console.log(`wrote ${out} — ${chipInfo.package.type}`);
