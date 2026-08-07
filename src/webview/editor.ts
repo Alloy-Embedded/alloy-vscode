@@ -10,8 +10,8 @@
 // problem carries the message AND the pins that would work, as one-click fixes.
 
 import {
-  BoardJson, ClockGraph, EditorData, FIELD_WIDGETS, PinAssign, ROLE_GROUPS,
-  ROLE_TITLES, RoleCandidate, RoleSpec, ValidationIssue, esc,
+  BoardJson, ChipPackage, ClockGraph, EditorData, FIELD_WIDGETS, PinAssign,
+  ROLE_GROUPS, ROLE_TITLES, RoleCandidate, RoleSpec, ValidationIssue, esc,
 } from "../shared/board";
 
 type Role = Record<string, unknown>;
@@ -25,6 +25,8 @@ export interface State {
   selectedPin: string | null;
   search: string;
   peripheralFilter: string;
+  /** Draw the physical package instead of the per-port list. */
+  physical: boolean;
   issues: ValidationIssue[];
   readOnly: boolean;
   status: { text: string; kind: "" | "ok" | "err" };
@@ -43,6 +45,9 @@ export function initialState(data: EditorData): State {
     selectedPin: null,
     search: "",
     peripheralFilter: "",
+    // Physical whenever the data can back it up — that is the view people came
+    // for; the port list stays one click away and is the only view otherwise.
+    physical: !!data.chip.package,
     issues: data.detail.issues ?? [],
     readOnly: !data.detail.editable,
     status: { text: "", kind: "" },
@@ -318,6 +323,85 @@ export function peripheralsInMap(data: EditorData): string[] {
   return [...names].sort();
 }
 
+/** Whether a pin is one the user can assign, or a supply pad that is simply
+ *  part of the part. */
+const ASSIGNABLE = new Set(["gpio", undefined]);
+
+/**
+ * The chip as it physically is: pins around the four sides of a quad package,
+ * or a grid for a BGA. Drawn ONLY from a curated `package` fact — the framework
+ * refuses to guess a pinout, so a chip without one keeps the logical map.
+ *
+ * Split evenly counter-clockwise from pin 1, which is how every quad datasheet
+ * numbers them: down the left, along the bottom, up the right, back along the
+ * top.
+ */
+export function renderPackage(state: State, pkg: ChipPackage,
+                              owned: Record<string, string>,
+                              badPins: Set<string>): string {
+  const isGrid = pkg.layout.some((p) => !/^\d+$/.test(p.position));
+  const cell = (entry: ChipPackage["layout"][number], vertical: boolean) => {
+    const role = owned[entry.signal];
+    const assign = state.pins[entry.signal];
+    const classes = ["pk-pin"];
+    if (badPins.has(entry.signal)) {
+      classes.push("bad");
+    } else if (role) {
+      classes.push("role");
+    } else if (assign) {
+      classes.push(assign.function.startsWith("gpio") ? "gpio" : "af");
+    } else if (!ASSIGNABLE.has(entry.kind)) {
+      classes.push("supply");
+    }
+    if (entry.signal === state.selectedPin) {
+      classes.push("sel");
+    }
+    const clickable = ASSIGNABLE.has(entry.kind) && !role;
+    return `<button class="${classes.join(" ")}${vertical ? " vert" : ""}"`
+      + `${clickable ? ` data-pin="${esc(entry.signal)}"` : " disabled"}`
+      + ` title="${esc(entry.position)} · ${esc(entry.signal)}${
+          role ? ` · ${esc(role)}` : ""}">`
+      + `<span class="pk-num">${esc(entry.position)}</span>`
+      + `<span class="pk-sig">${esc(entry.signal)}</span></button>`;
+  };
+
+  if (isGrid) {
+    const rows = new Map<string, ChipPackage["layout"]>();
+    for (const entry of pkg.layout) {
+      const row = entry.position.replace(/\d+$/, "");
+      rows.set(row, [...(rows.get(row) ?? []), entry]);
+    }
+    const body = [...rows.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([row, entries]) => `<div class="pk-row"><span class="pk-rowlabel">${
+        esc(row)}</span>${entries
+          .sort((a, b) => Number(a.position.replace(/\D/g, ""))
+                        - Number(b.position.replace(/\D/g, "")))
+          .map((e) => cell(e, false)).join("")}</div>`).join("");
+    return `<div class="pk grid"><div class="pk-gridbody">${body}</div>
+      <div class="pk-caption">${esc(pkg.type)} · ${pkg.pins} balls</div></div>`;
+  }
+
+  const perSide = Math.floor(pkg.layout.length / 4);
+  const ordered = [...pkg.layout].sort((a, b) => Number(a.position) - Number(b.position));
+  const left = ordered.slice(0, perSide);
+  const bottom = ordered.slice(perSide, perSide * 2);
+  const right = ordered.slice(perSide * 2, perSide * 3);
+  const top = ordered.slice(perSide * 3);
+
+  return `<div class="pk quad">
+      <div class="pk-top">${[...top].reverse().map((e) => cell(e, true)).join("")}</div>
+      <div class="pk-mid">
+        <div class="pk-left">${left.map((e) => cell(e, false)).join("")}</div>
+        <div class="pk-die">
+          <span class="pk-part">${esc(pkg.part ?? pkg.type)}</span>
+          <span class="pk-type">${esc(pkg.type)} · ${pkg.pins} pins</span>
+        </div>
+        <div class="pk-right">${[...right].reverse().map((e) => cell(e, false)).join("")}</div>
+      </div>
+      <div class="pk-bottom">${bottom.map((e) => cell(e, true)).join("")}</div>
+    </div>`;
+}
+
 export function renderPinMap(state: State, data: EditorData): string {
   const pins = data.chip.pins ?? [];
   if (!pins.length) {
@@ -342,6 +426,10 @@ export function renderPinMap(state: State, data: EditorData): string {
         `${f.peripheral} ${f.signal}`.toLowerCase().includes(search))
       || (state.pins[pin.name]?.label ?? "").toLowerCase().includes(search);
   };
+
+  if (state.physical && data.chip.package) {
+    return renderPackage(state, data.chip.package, owned, badPins);
+  }
 
   const ports = new Map<string, typeof pins>();
   for (const pin of pins) {
@@ -613,6 +701,16 @@ export function main(): void {
       + peripheralsInMap(data).map((p) => option(p, p, false)).join("");
     filter.onchange = () => { state.peripheralFilter = filter.value; paint(); };
   }
+  const setView = (physical: boolean) => {
+    state.physical = physical;
+    $("view_physical")?.classList.toggle("on", physical);
+    $("view_logical")?.classList.toggle("on", !physical);
+    paint();
+  };
+  $("view_physical")?.addEventListener("click", () => setView(true));
+  $("view_logical")?.addEventListener("click", () => setView(false));
+  setView(state.physical);
+
   const apply = $("pd_apply");
   if (apply) {
     apply.onclick = () => {

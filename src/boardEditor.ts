@@ -158,6 +158,12 @@ ${readOnly ? `<div class="banner">
 <div>
 <fieldset><legend>Pinout</legend>
 ${pinCount ? `
+  <div class="viewtoggle">
+    <button id="view_physical"${chip.package ? "" : " disabled"} title="${
+      chip.package ? esc(`${chip.package.type} — ${chip.package.pins} pins`)
+                   : "this chip has no pinout the data can back up"}">Package</button>
+    <button id="view_logical">By port</button>
+  </div>
   <div class="filters">
     <input type="search" id="search" placeholder="search pins or functions…">
     <select id="periph_filter"></select>

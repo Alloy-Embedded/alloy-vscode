@@ -172,6 +172,7 @@ async function main() {
   assert.equal(owned.pa2, "debug_uart tx");
   assert.ok(!("pa5" in owned), "the LED's pin is free once the role is off");
 
+  await packageTests(ed, data);
   await clockTests(ed);
   await monitorTests();
   await reportTests();
@@ -380,4 +381,81 @@ async function monitorTests() {
   const flat = m.sparkPath([{ value: 5 }, { value: 5 }], 100, 10);
   assert.ok(!flat.includes("NaN"), `flat series produced ${flat}`);
   assert.ok(/M0\.0,\d/.test(flat) && /L100\.0,\d/.test(flat));
+}
+
+async function packageTests(ed, data) {
+  // A small quad package with a supply pad and a reset, so the four sides and
+  // the non-assignable pins are both exercised.
+  const pkg = {
+    type: "LQFP16", pins: 16, part: "FAKE16Tx",
+    layout: Array.from({ length: 16 }, (_, i) => {
+      const n = String(i + 1);
+      if (i === 3) return { position: n, signal: "vdd", kind: "power" };
+      if (i === 7) return { position: n, signal: "nrst", kind: "reset" };
+      if (i === 11) return { position: n, signal: "vss", kind: "ground" };
+      return { position: n, signal: `pa${i}`, kind: "gpio" };
+    }),
+  };
+  const withPkg = { ...data, chip: { ...data.chip, package: pkg } };
+  const state = ed.initialState(withPkg);
+
+  // The view defaults to physical exactly when the data can back one up.
+  assert.equal(state.physical, true, "a chip WITH a pinout opens on the package");
+  assert.equal(ed.initialState(data).physical, false,
+    "a chip without one must not default to a view it cannot draw");
+
+  const html = ed.renderPinMap(state, withPkg);
+  assert.ok(html.includes("pk quad"), "a numeric pinout draws as a quad package");
+  assert.ok(html.includes("FAKE16Tx") && html.includes("LQFP16 · 16 pins"));
+  assert.equal((html.match(/class="pk-pin/g) || []).length, 16,
+    "every pin of the package must be drawn, supply pads included");
+  // Count per side, not just the presence of the containers: with a broken
+  // split the four divs still exist and every pin lands in one of them.
+  const side = (name) => {
+    const open = html.indexOf(`class="pk-${name}"`);
+    const chunk = html.slice(open, html.indexOf("</div>", open));
+    return (chunk.match(/class="pk-pin/g) || []).length;
+  };
+  for (const name of ["top", "bottom", "left", "right"]) {
+    assert.equal(side(name), 4, `${name} side should hold 4 of the 16 pins`);
+  }
+
+  // Supply pads are shown but are not a choice.
+  assert.match(html, /class="pk-pin supply[^"]*" disabled[^>]*>[\s\S]{0,90}vdd/,
+    "a power pad is drawn, and not clickable");
+  assert.ok(!/data-pin="vdd"/.test(html), "a supply pad is not assignable");
+  assert.ok(/data-pin="pa0"/.test(html), "a GPIO is");
+
+  // Role locks and validation errors carry over from the logical map.
+  const busy = ed.initialState(withPkg);
+  busy.roles = { led: { pin: "pa1" } };
+  assert.match(ed.renderPinMap(busy, withPkg), /class="pk-pin role[^"]*"[^>]*disabled/,
+    "a pin a role owns is locked in the package view too");
+  const broken = ed.initialState(withPkg);
+  broken.issues = [{ level: "error", role: "i2c", field: "scl", pin: "pa2",
+                     message: "x", suggestions: [] }];
+  assert.ok(ed.renderPackage(broken, pkg, {}, new Set(["pa2"])).includes("pk-pin bad"));
+
+  // Switching back gives the port list, unchanged.
+  const logical = { ...state, physical: false };
+  assert.ok(ed.renderPinMap(logical, withPkg).includes("portname"),
+    "the per-port view must still work when the package is available");
+
+  // A BGA is a grid, not four sides.
+  const bga = {
+    type: "UFBGA4", pins: 4, layout: [
+      { position: "A1", signal: "pa0", kind: "gpio" },
+      { position: "A2", signal: "pa1", kind: "gpio" },
+      { position: "B1", signal: "vdd", kind: "power" },
+      { position: "B2", signal: "vss", kind: "ground" },
+    ],
+  };
+  const grid = ed.renderPackage(ed.initialState(withPkg), bga, {}, new Set());
+  assert.ok(grid.includes("pk grid") && grid.includes("pk-rowlabel"));
+  assert.ok(grid.includes("4 balls"), "a BGA has balls, not pins");
+  assert.ok(!grid.includes("pk-top"), "a grid has no sides to lay pins along");
+
+  // Device data is not markup, here either.
+  const nasty = { ...pkg, part: "<script>x</script>" };
+  assert.ok(ed.renderPackage(state, nasty, {}, new Set()).includes("&lt;script&gt;"));
 }

@@ -194,3 +194,63 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   font-size: 11px; color: var(--vscode-descriptionForeground);
 }
 .ck-unstated { line-height: 1.5; }
+
+/* ── physical package ─────────────────────────────────────────────────────
+   Pins on the four sides of the die, numbered counter-clockwise from pin 1 as
+   every quad datasheet does. Supply pads are drawn but not clickable — they
+   are part of the part, not a choice. */
+.pk { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pk-mid { display: flex; align-items: stretch; gap: 3px; }
+.pk-top, .pk-bottom { display: flex; gap: 2px; justify-content: center; }
+.pk-left, .pk-right { display: flex; flex-direction: column; gap: 2px; }
+.pk-die {
+  flex: 1; min-width: 150px; min-height: 150px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border); border-radius: 5px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 8px;
+}
+.pk-part { font-weight: 600; font-size: 13px; letter-spacing: .02em; }
+.pk-type {
+  font-size: 10px; color: var(--vscode-descriptionForeground);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.pk-pin {
+  font-family: var(--vscode-editor-font-family, monospace); font-size: 8px;
+  line-height: 1.15; padding: 2px 3px; min-width: 30px;
+  border: 1px solid var(--vscode-panel-border); border-radius: 2px;
+  background: transparent; color: var(--vscode-foreground);
+  display: flex; flex-direction: column; align-items: center; cursor: pointer;
+}
+.pk-pin.vert { writing-mode: vertical-rl; transform: rotate(180deg); min-height: 34px;
+               min-width: 0; flex-direction: row; }
+.pk-pin:disabled { cursor: default; opacity: .55; }
+.pk-pin:not(:disabled):hover { border-color: var(--vscode-focusBorder); }
+.pk-pin.sel { outline: 2px solid var(--vscode-focusBorder); }
+.pk-num { opacity: .55; font-size: 7px; }
+.pk-sig { white-space: nowrap; }
+.pk-pin.gpio { background: var(--vscode-charts-green, #2e7d32); color: #fff; border-color: transparent; }
+.pk-pin.af { background: var(--vscode-charts-blue, #1565c0); color: #fff; border-color: transparent; }
+.pk-pin.role { background: var(--vscode-charts-purple, #6a1b9a); color: #fff; border-color: transparent; }
+.pk-pin.bad { background: var(--vscode-editorError-foreground, #f14c4c); color: #fff; border-color: transparent; }
+.pk-pin.supply {
+  background: var(--vscode-input-background);
+  color: var(--vscode-descriptionForeground); opacity: .8;
+}
+.pk-caption { font-size: 10px; color: var(--vscode-descriptionForeground); margin-top: 6px; }
+.pk.grid .pk-gridbody { display: flex; flex-direction: column; gap: 2px; }
+.pk-row { display: flex; gap: 2px; align-items: center; }
+.pk-rowlabel {
+  width: 14px; font-size: 9px; color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+.viewtoggle { display: flex; gap: 6px; margin: 0 0 8px; }
+.viewtoggle button {
+  flex: 1; padding: 4px 8px; font-size: 11px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+.viewtoggle button.on {
+  background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+}
+.viewtoggle button:disabled { opacity: .45; cursor: default; }

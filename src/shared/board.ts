@@ -40,6 +40,20 @@ export interface RoleSpec {
   requires_role?: string;
 }
 
+/** The physical part: one entry per pin of the package, in position order.
+ *  Absent when the chip data has no trustworthy pinout — which is a normal
+ *  state, not a bug (see the pinout plausibility lint in alloy-devices). */
+export interface ChipPackage {
+  type: string;
+  pins: number;
+  part?: string;
+  layout: {
+    position: string;
+    signal: string;
+    kind?: "gpio" | "power" | "ground" | "reset" | "analog" | "clock" | "boot" | "other";
+  }[];
+}
+
 export interface ChipDetail {
   chip: string;
   family: string | null;
@@ -49,6 +63,8 @@ export interface ChipDetail {
   gpio_pins: string[];
   /** Per-pin function map. Absent on pre-pins CLIs. */
   pins?: PinInfo[];
+  /** The package drawing, when the data supports one. */
+  package?: ChipPackage | null;
   /** Every board role and this chip's candidates for it. Absent on pre-roles
    *  CLIs, in which case the editor falls back to the legacy panels. */
   roles?: Record<string, RoleSpec>;
