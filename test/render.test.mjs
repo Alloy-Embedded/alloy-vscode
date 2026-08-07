@@ -185,6 +185,12 @@ async function main() {
   assert.equal(out.chip, data.board.chip, "the chip must survive a round trip");
 
   // ---- what goes to alloy.toml instead of board.json ----
+  //
+  // The wiring these must mirror (src/boardEditor.ts): `board` is board.json as
+  // READ FROM DISK — the stored board — while `detail` comes from board-info and
+  // is the EFFECTIVE one, with alloy.toml already applied. An earlier version of
+  // this block built `board` with the override baked in, which production never
+  // produces, and the test passed while the real panel erased the override.
   const proj = ed.initialState({ ...data, detail: { ...data.detail, editable: false } });
   assert.deepEqual(ed.buildOverrides(proj, data), { roles: {}, clock: null },
     "an untouched board must write no overrides — otherwise every open pins "
@@ -195,28 +201,60 @@ async function main() {
     { debug_uart: { baud: 921600 } },
     "only project fields may reach alloy.toml");
 
-  // The board this project already overrode: board-info reports 115200 as the
-  // board's own and 921600 as ours, and `roles` is ALREADY the overridden one.
-  // Saving with no edit must keep the override, not read it as "equal to the
-  // board" and drop it.
+  // A project that ALREADY overrides the baud, wired exactly as production does:
+  // board.json still says 115200, board-info reports 921600 as effective and
+  // names 115200 as the board's own.
   const withOverride = {
     ...data,
-    board: { ...data.board, roles: { ...data.board.roles,
-      debug_uart: { ...data.board.roles.debug_uart, baud: 921600 } } },
-    detail: { ...data.detail, editable: false,
+    board: data.board,                                   // stored: baud 115200
+    detail: {
+      ...data.detail, editable: false,
       roles: { ...data.detail.roles,
         debug_uart: { ...data.detail.roles.debug_uart, baud: 921600 } },
       project_overrides: {
         roles: { debug_uart: { baud: { board: 115200, project: 921600 } } },
         clock: null,
-      } },
+      },
+    },
   };
+  assert.equal(withOverride.board.roles.debug_uart.baud, 115200,
+    "the fixture must keep board.json stored — that is the whole point");
+
   const kept = ed.initialState(withOverride);
+  assert.equal(kept.roles.debug_uart.baud, 921600,
+    "the panel must show what the firmware is built with, not the board's default");
   assert.deepEqual(ed.buildOverrides(kept, withOverride).roles,
     { debug_uart: { baud: 921600 } },
     "re-saving an unchanged board must not erase an override it already has");
   assert.ok(ed.renderRoles(kept, withOverride).includes("board says 115200"),
     "an overridden field must show what the board itself says");
+  assert.equal(ed.buildBoard(kept, withOverride).roles.debug_uart.baud, 115200,
+    "board.json must keep the BOARD's value — applying may not freeze an "
+    + "alloy.toml choice into the board file");
+
+  // The clock takes the same route, and nothing covered it until a negative
+  // control showed the seeding could be reverted with every test still green.
+  const clockOverridden = {
+    ...data,
+    detail: {
+      ...data.detail, editable: false,
+      clock: { mode: "profile", profile: "pll_64mhz", sysclk_hz: 64000000,
+               description: "HSI16 -> PLL 64 MHz", silicon_validated: false },
+      project_overrides: {
+        roles: {},
+        clock: { board: "hsi_16mhz", project: { profile: "pll_64mhz" } },
+      },
+    },
+  };
+  const clocked = ed.initialState(clockOverridden);
+  assert.equal(clocked.clockProfile, "pll_64mhz",
+    "the panel must show the clock the firmware is built with");
+  assert.equal(clocked.clockMode, "preset", "a named profile is not a custom PLL");
+  assert.deepEqual(ed.buildOverrides(clocked, clockOverridden).clock,
+    { profile: "pll_64mhz" }, "re-saving must keep the clock override");
+  assert.equal(ed.buildBoard(clocked, clockOverridden).clock_profile, "hsi_16mhz",
+    "board.json keeps the board's own clock, not the project's");
+
   kept.roles.debug_uart.baud = 115200;            // back to the board's value
   assert.deepEqual(ed.buildOverrides(kept, withOverride).roles, {},
     "choosing the board's own value must clear the override, not pin it");

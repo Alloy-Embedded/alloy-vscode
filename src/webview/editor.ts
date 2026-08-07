@@ -36,15 +36,38 @@ export interface State {
 }
 
 export function initialState(data: EditorData): State {
-  const inline = !!data.board.clock;
+  const overrides = data.detail.project_overrides;
+  // Start from the board's own values and mutate in place, so a role this UI
+  // cannot describe keeps exactly what board.json had — then lay this
+  // project's choices on top.
+  //
+  // Both halves matter. `data.board` is board.json as STORED, which is what
+  // has to round-trip when the board is ours to write. But the firmware is
+  // built from the board as OVERRIDDEN, and seeding from the stored one alone
+  // put the board's 115200 in a panel whose project runs at 921600 — and then
+  // Apply read that stale number back, decided it matched the board, and
+  // deleted the override from alloy.toml.
+  const roles = JSON.parse(JSON.stringify(data.board.roles ?? {}));
+  for (const [role, fields] of Object.entries(overrides?.roles ?? {})) {
+    for (const [field, both] of Object.entries(fields)) {
+      if (roles[role]) {
+        roles[role][field] = both.project;
+      }
+    }
+  }
+  // The effective clock, for the same reason. board-info resolves it whether
+  // the project named a profile or asked for a frequency.
+  const effective = data.detail.clock;
+  const inline = effective ? effective.mode === "inline" : !!data.board.clock;
   return {
-    // Start from the board's own values and mutate in place, so a role this UI
-    // cannot describe keeps exactly what board.json had.
-    roles: JSON.parse(JSON.stringify(data.board.roles ?? {})),
+    roles,
     pins: JSON.parse(JSON.stringify(data.board.pins ?? {})),
     clockMode: inline ? "custom" : "preset",
-    clockProfile: data.board.clock_profile ?? "",
-    solved: inline ? (data.board.clock as Record<string, unknown>) : null,
+    clockProfile: effective?.profile ?? data.board.clock_profile ?? "",
+    // Only the STORED board carries the PLL program; if this project asked for
+    // a frequency the board does not have, there is nothing to seed and Save
+    // says "compute a PLL first" rather than writing a wrong one.
+    solved: data.board.clock ? (data.board.clock as Record<string, unknown>) : null,
     selectedPin: null,
     search: "",
     peripheralFilter: "",
@@ -658,16 +681,38 @@ export function buildOverrides(state: State, data: EditorData) {
   return { roles, clock };
 }
 
+/** board.json as it should be WRITTEN: the project's own choices stripped back
+ *  out, so applying never bakes an alloy.toml value into the board file. */
 export function buildBoard(state: State, data: EditorData): BoardJson {
   const board: BoardJson = JSON.parse(JSON.stringify(data.board));
-  if (state.clockMode === "custom" && state.solved) {
+  // Same for the clock: what the PROJECT asked for goes to alloy.toml, so the
+  // board keeps whatever it already said.
+  const ownClock = state.overrides?.clock;
+  if (ownClock) {
+    board.clock_profile = ownClock.board ?? undefined;
+  } else if (state.clockMode === "custom" && state.solved) {
     board.clock = state.solved;
     board.clock_profile = "custom";
   } else {
     delete board.clock;
     board.clock_profile = state.clockProfile;
   }
-  board.roles = state.roles;
+  // state.roles carries this project's choices (seeded above); board.json is
+  // not where those live. Put the board's own value back for every project
+  // field, or applying an editable board would freeze an alloy.toml value
+  // into the file and the override would stop being an override.
+  board.roles = JSON.parse(JSON.stringify(state.roles));
+  const specs = roleSpecs(data);
+  for (const [role, cfg] of Object.entries(board.roles ?? {})) {
+    for (const field of specs[role]?.project_fields ?? []) {
+      const own = boardValue(state, data, role, field);
+      if (own === undefined) {
+        delete (cfg as Record<string, unknown>)[field];
+      } else {
+        (cfg as Record<string, unknown>)[field] = own;
+      }
+    }
+  }
   const owned = rolePins(state, data);
   const named: Record<string, PinAssign> = {};
   for (const [pin, assign] of Object.entries(state.pins)) {
