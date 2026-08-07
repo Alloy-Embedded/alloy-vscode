@@ -9,13 +9,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { BoardDetail, ChipDetail } from "./shared/board";
+import { BoardDetail, ChipDetail, MatrixReport, SizeReport } from "./shared/board";
 
 // The envelope shapes live in shared/ because the webview bundle needs them
 // too and must not import this module (it pulls in `vscode`).
 export type {
-  BoardDetail, ChipDetail, PinFunction, PinInfo, RoleCandidate, RoleSpec,
-  ValidationIssue,
+  BoardDetail, ChipDetail, MatrixReport, PinFunction, PinInfo, RoleCandidate,
+  RoleSpec, SizeReport, ValidationIssue,
 } from "./shared/board";
 
 const execFileP = promisify(execFile);
@@ -194,25 +194,22 @@ export async function cloneBoard(sourceId: string, newId: string, cwd: string): 
   await runCli(["set-board", newId], cwd);
 }
 
-/** alloy.size.v1 — what the last build costs, against the chip's memories. */
-export interface SizeReport {
-  board: string;
-  chip: string | null;
-  available: boolean;
-  reason: string | null;
-  flash: { used: number | null; total: number | null; percent: number | null };
-  ram: { used: number | null; total: number | null; percent: number | null };
-  slots: {
-    image_bytes: number | null;
-    regions: { name: string; base: number; size: number; fits: boolean | null }[];
-  } | null;
-}
-
 export async function sizeReport(cwd: string): Promise<SizeReport> {
   const { stdout } = await runCli(["size", "--json"], cwd);
   const report = JSON.parse(stdout) as SizeReport & { schema: string };
   if (report.schema !== "alloy.size.v1") {
     throw new Error("unsupported size envelope — update the alloy CLI");
+  }
+  return report;
+}
+
+/** matrix --json — the same sources built for every board. Slow by nature
+ *  (it compiles N times), so callers should show progress. */
+export async function buildMatrix(cwd: string): Promise<MatrixReport> {
+  const { stdout } = await runCli(["matrix", "--json"], cwd);
+  const report = JSON.parse(stdout) as MatrixReport & { schema: string };
+  if (report.schema !== "alloy.matrix.v1") {
+    throw new Error("unsupported matrix envelope — update the alloy CLI");
   }
   return report;
 }

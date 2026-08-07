@@ -20,16 +20,19 @@ const FIXTURE = resolve(HERE, "fixture");
 const cli = (args) =>
   JSON.parse(execFileSync(STUB, args, { cwd: FIXTURE, encoding: "utf8" }));
 
-/** The webview app. It imports nothing but src/shared/, so it loads in Node. */
-async function loadEditor() {
+/** A module under src/ that imports nothing but src/shared/, so it loads in Node. */
+async function loadModule(...segments) {
   const built = await esbuild.build({
-    entryPoints: [resolve(ROOT, "src", "webview", "editor.ts")],
+    entryPoints: [resolve(ROOT, ...segments)],
     bundle: true, format: "esm", write: false, platform: "neutral",
     target: "es2020", logLevel: "silent",
   });
   return import("data:text/javascript;base64,"
     + Buffer.from(built.outputFiles[0].text).toString("base64"));
 }
+
+const loadEditor = () => loadModule("src", "webview", "editor.ts");
+const loadReport = () => loadModule("src", "shared", "report.ts");
 
 const ALL_ROLES = [
   "led", "button", "gpio_bus", "debug_uart", "i2c", "spi", "led_pwm", "adc",
@@ -169,7 +172,58 @@ async function main() {
   assert.equal(owned.pa2, "debug_uart tx");
   assert.ok(!("pa5" in owned), "the LED's pin is free once the role is off");
 
+  await reportTests();
   console.log("render tests passed");
+}
+
+async function reportTests() {
+  const rp = await loadReport();
+
+  // ---- memory map ----
+  const size = cli(["size", "--json"]);
+  const memory = rp.renderMemory(size);
+  assert.ok(memory.includes("Code") && memory.includes("Data"));
+  assert.ok(memory.includes("slot_a") && memory.includes("slot_b"),
+    "the A/B partitions must be drawn, not just the totals");
+  assert.ok(memory.includes("fits every slot"),
+    "the question before a field update is whether the image fits");
+
+  const tooBig = JSON.parse(JSON.stringify(size));
+  tooBig.slots.regions[1].fits = false;
+  const warned = rp.renderMemory(tooBig);
+  assert.ok(warned.includes("does not fit") && warned.includes("slot_a"),
+    "an image that does not fit must say which slot");
+  assert.ok(warned.includes("seg slot nofit"), "and show it");
+
+  const nothing = rp.renderMemory({
+    ...size, available: false, reason: "no build yet for board 'x'" });
+  assert.ok(nothing.includes("no build yet"),
+    "a project that has not been built explains itself");
+
+  // ---- board matrix ----
+  const matrix = {
+    boards: [
+      { board: "nucleo_g071rb", chip: "st/stm32g071rb", ok: true, seconds: 2.1,
+        flash: { used: 2355, total: 131072, base: 0, percent: 1.8, region: "flash" },
+        ram: { used: 2150, total: 36864, base: 0, percent: 5.8, region: "sram" },
+        error: null },
+      { board: "esp32_devkit", chip: "espressif/esp32", ok: false, seconds: 0.3,
+        flash: null, ram: null, error: "xtensa toolchain not installed" },
+    ],
+    built: 1, failed: 1, ok: false,
+  };
+  const table = rp.renderMatrix(matrix);
+  assert.ok(table.includes("1 built, 1 failed"));
+  assert.ok(table.includes("2.3 KB") && table.includes("128.0 KB"));
+  assert.ok(table.includes("xtensa toolchain not installed"),
+    "a failed board keeps its row and its reason");
+  assert.ok(table.includes('class="failed"'));
+  assert.ok(table.includes("No\n    preprocessor conditionals")
+    || table.includes("preprocessor conditionals"),
+    "say what the table is checking");
+
+  const allGreen = { ...matrix, boards: [matrix.boards[0]], built: 1, failed: 0, ok: true };
+  assert.ok(rp.renderMatrix(allGreen).includes("1 of 1 boards"));
 }
 
 main().catch((err) => {

@@ -22,10 +22,16 @@ const ACTIONS: ActionSpec[] = [
   { label: "Pick Board", icon: "circuit-board", command: "alloy.pickBoard", needsProject: true },
   { label: "Configure Board", icon: "settings-gear", command: "alloy.configureBoard", needsProject: true },
   { label: "Build", icon: "tools", command: "alloy.build", needsProject: true },
+  // The framework's own claim, as a button: the same sources on every board.
+  { label: "Build All Boards", icon: "checklist", command: "alloy.buildAll", needsProject: true },
+  { label: "Memory & Partitions", icon: "server", command: "alloy.memory", needsProject: true },
   { label: "Flash", icon: "zap", command: "alloy.flash", needsProject: true },
   { label: "Update Device (UART)", icon: "cloud-upload", command: "alloy.updateDevice", needsProject: true },
   { label: "Run (Flash + Monitor)", icon: "vm-running", command: "alloy.run", needsProject: true },
   { label: "Monitor", icon: "pulse", command: "alloy.monitor", needsProject: true },
+  // Run the firmware with no hardware attached — nothing else in this space
+  // can do it, and until now it had no button.
+  { label: "Emulate (Renode)", icon: "play-circle", command: "alloy.emulate", needsProject: true },
   { label: "Debug", icon: "debug-alt", command: "alloy.debug", needsProject: true },
   { label: "Clean", icon: "trash", command: "alloy.clean", needsProject: true },
   { label: "Generate launch.json", icon: "json", command: "alloy.generateLaunchJson", needsProject: true },

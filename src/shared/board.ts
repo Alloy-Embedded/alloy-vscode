@@ -179,3 +179,44 @@ export function esc(s: unknown): string {
   return String(s).replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 }
+
+/** alloy.size.v1 — what the last build costs, against the chip's memories. */
+export interface MemoryUse {
+  used: number | null;
+  total: number | null;
+  base: number | null;
+  percent: number | null;
+  /** The memory the numbers refer to — "flash" is `irom` on a chip with none. */
+  region?: string | null;
+}
+
+export interface SizeReport {
+  board: string;
+  chip: string | null;
+  available: boolean;
+  reason: string | null;
+  flash: MemoryUse;
+  ram: MemoryUse;
+  slots: {
+    image_bytes: number | null;
+    regions: { name: string; base: number; size: number; fits: boolean | null }[];
+  } | null;
+}
+
+/** alloy.matrix.v1 — one source tree, every board. */
+export interface MatrixRow {
+  board: string;
+  chip: string | null;
+  ok: boolean;
+  seconds: number;
+  flash: MemoryUse | null;
+  ram: MemoryUse | null;
+  error: string | null;
+}
+
+export interface MatrixReport {
+  boards: MatrixRow[];
+  built: number;
+  failed: number;
+  ok: boolean;
+}

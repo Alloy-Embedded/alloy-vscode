@@ -62,6 +62,18 @@
         "title": "Alloy: Clean"
       },
       {
+        "command": "alloy.emulate",
+        "title": "Alloy: Emulate (Renode)"
+      },
+      {
+        "command": "alloy.buildAll",
+        "title": "Alloy: Build All Boards"
+      },
+      {
+        "command": "alloy.memory",
+        "title": "Alloy: Memory & Partitions"
+      },
+      {
         "command": "alloy.debug",
         "title": "Alloy: Debug"
       },
@@ -103,7 +115,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "description": "build | flash | run | monitor | clean | gen"
+            "description": "build | flash | run | monitor | clean | gen | emulate"
           },
           "board": {
             "type": "string",

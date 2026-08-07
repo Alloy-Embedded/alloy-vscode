@@ -20,17 +20,17 @@ describe("alloy-vscode smoke", () => {
     assert.ok(ext.isActive, "extension did not activate");
   });
 
-  it("registers every alloy command", async () => {
+  it("registers every command the manifest declares", async () => {
+    // Read the list from package.json instead of repeating it here: a command
+    // contributed but never registered shows up in the palette and then fails,
+    // which is precisely what this should catch.
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "..", "..", "package.json"), "utf8"));
+    const declared = manifest.contributes.commands.map((c) => c.command);
+    assert.ok(declared.length >= 20, `only ${declared.length} commands declared`);
     const all = await vscode.commands.getCommands(true);
-    for (const cmd of [
-      "alloy.setup", "alloy.newProject", "alloy.pickBoard", "alloy.configureBoard", "alloy.build",
-      "alloy.flash", "alloy.run", "alloy.monitor", "alloy.clean",
-      "alloy.debug", "alloy.generateLaunchJson",
-      "alloy.refreshTools", "alloy.installTools",
-      "alloy.addLibrary", "alloy.refreshLibraries", "alloy.updateDevice",
-      "alloy.refreshMemory",
-    ]) {
-      assert.ok(all.includes(cmd), `missing command ${cmd}`);
+    for (const cmd of declared) {
+      assert.ok(all.includes(cmd), `declared but not registered: ${cmd}`);
     }
   });
 

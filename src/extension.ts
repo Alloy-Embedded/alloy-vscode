@@ -11,6 +11,7 @@ import { ActionsProvider, MemoryProvider, ToolsProvider, installTools } from "./
 import { LibrariesProvider, addLibrary } from "./libraries";
 import { configureBoard } from "./boardEditor";
 import { updateDevice } from "./updateDevice";
+import { showMatrix, showMemory } from "./panels";
 import { workspaceRoot } from "./cli";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -36,6 +37,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("alloy.run", wrap(() => runAction("run"))),
     vscode.commands.registerCommand("alloy.monitor", wrap(() => runAction("monitor"))),
     vscode.commands.registerCommand("alloy.clean", wrap(() => runAction("clean"))),
+    vscode.commands.registerCommand("alloy.emulate", wrap(() => runAction("emulate"))),
+    vscode.commands.registerCommand("alloy.buildAll", wrap(showMatrix)),
+    vscode.commands.registerCommand("alloy.memory", wrap(showMemory)),
     vscode.commands.registerCommand("alloy.debug", wrap(startDebug)),
     vscode.commands.registerCommand("alloy.generateLaunchJson", wrap(generateLaunchJson)),
     vscode.tasks.registerTaskProvider("alloy", new AlloyTaskProvider()),
