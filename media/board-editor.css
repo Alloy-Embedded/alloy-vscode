@@ -196,60 +196,136 @@ button:focus-visible, select:focus-visible, input:focus-visible {
 .ck-unstated { line-height: 1.5; }
 
 /* ── physical package ─────────────────────────────────────────────────────
-   Pins on the four sides of the die, numbered counter-clockwise from pin 1 as
-   every quad datasheet does. Supply pads are drawn but not clickable — they
-   are part of the part, not a choice. */
-.pk { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.pk-mid { display: flex; align-items: stretch; gap: 3px; }
-.pk-top, .pk-bottom { display: flex; gap: 2px; justify-content: center; }
-.pk-left, .pk-right { display: flex; flex-direction: column; gap: 2px; }
+   A quad package is a square of pins with the labels reading OUTWARD, which is
+   how a datasheet draws one and the only way 36 pins fit on a side. Each pin is
+   a small stub against the die; the name sits outside it. Two stacked lines per
+   pin (what this first tried) needs 50px per pin — 1800px down one side.
+
+   --pitch is the pin-to-pin spacing and the only number to tune: everything
+   else, including the die, is sized from it. */
+.pk-scroll { overflow: auto; max-width: 100%; padding: 2px; }
+.pk {
+  --pitch: 13px;
+  /* Long enough for the worst pad name a package carries (vddutmic,
+     vddpllusb) plus its position number. */
+  --label: 62px;
+  display: grid;
+  grid-template-columns: var(--label) auto var(--label);
+  grid-template-rows: var(--label) auto var(--label);
+  width: max-content; margin: 0 auto;
+}
+.pk-corner { }
+.pk-top, .pk-bottom { display: flex; }
+.pk-left, .pk-right { display: flex; flex-direction: column; }
+
 .pk-die {
-  flex: 1; min-width: 150px; min-height: 150px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
   background: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-panel-border); border-radius: 5px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; padding: 8px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; padding: 10px;
 }
-.pk-part { font-weight: 600; font-size: 13px; letter-spacing: .02em; }
+.pk-part { font-weight: 600; font-size: 12px; letter-spacing: .02em; }
 .pk-type {
-  font-size: 10px; color: var(--vscode-descriptionForeground);
-  text-transform: uppercase; letter-spacing: .08em;
+  font-size: 9px; color: var(--vscode-descriptionForeground);
+  text-transform: uppercase; letter-spacing: .09em;
 }
+
+/* A pin: label reading outward, stub touching the die. */
 .pk-pin {
-  font-family: var(--vscode-editor-font-family, monospace); font-size: 8px;
-  line-height: 1.15; padding: 2px 3px; min-width: 30px;
-  border: 1px solid var(--vscode-panel-border); border-radius: 2px;
-  background: transparent; color: var(--vscode-foreground);
-  display: flex; flex-direction: column; align-items: center; cursor: pointer;
+  display: flex; align-items: center; gap: 2px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--vscode-foreground);
 }
-.pk-pin.vert { writing-mode: vertical-rl; transform: rotate(180deg); min-height: 34px;
-               min-width: 0; flex-direction: row; }
-.pk-pin:disabled { cursor: default; opacity: .55; }
-.pk-pin:not(:disabled):hover { border-color: var(--vscode-focusBorder); }
-.pk-pin.sel { outline: 2px solid var(--vscode-focusBorder); }
-.pk-num { opacity: .55; font-size: 7px; }
-.pk-sig { white-space: nowrap; }
-.pk-pin.gpio { background: var(--vscode-charts-green, #2e7d32); color: #fff; border-color: transparent; }
-.pk-pin.af { background: var(--vscode-charts-blue, #1565c0); color: #fff; border-color: transparent; }
-.pk-pin.role { background: var(--vscode-charts-purple, #6a1b9a); color: #fff; border-color: transparent; }
-.pk-pin.bad { background: var(--vscode-editorError-foreground, #f14c4c); color: #fff; border-color: transparent; }
-.pk-pin.supply {
-  background: var(--vscode-input-background);
-  color: var(--vscode-descriptionForeground); opacity: .8;
+.pk-pin:disabled { cursor: default; }
+.pk-lab {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 8px; line-height: 1; white-space: nowrap;
+  overflow: hidden; flex: 1; min-width: 0;
 }
-.pk-caption { font-size: 10px; color: var(--vscode-descriptionForeground); margin-top: 6px; }
-.pk.grid .pk-gridbody { display: flex; flex-direction: column; gap: 2px; }
-.pk-row { display: flex; gap: 2px; align-items: center; }
-.pk-rowlabel {
-  width: 14px; font-size: 9px; color: var(--vscode-descriptionForeground);
+.pk-lab b { font-weight: 400; opacity: .45; margin-right: 3px; }
+/* In vertical writing mode margin-right runs along the BLOCK axis, so the
+   gap has to be re-expressed or the number collides with the name. */
+.s-top .pk-lab b, .s-bottom .pk-lab b { margin: 0 0 3px; }
+.pk-stub {
+  display: block; flex: none; border-radius: 1px;
+  background: var(--vscode-panel-border);
+}
+
+/* Per side: which way the label reads, and which way the stub points. */
+.s-left  { width: var(--label); height: var(--pitch); }
+.s-left .pk-lab { text-align: right; }
+.s-left .pk-stub { width: 9px; height: 7px; }
+
+.s-right { width: var(--label); height: var(--pitch); flex-direction: row-reverse; }
+.s-right .pk-lab { text-align: left; }
+.s-right .pk-stub { width: 9px; height: 7px; }
+
+.s-top, .s-bottom { width: var(--pitch); height: var(--label); flex-direction: column; }
+.s-top { justify-content: flex-end; }
+.s-bottom { flex-direction: column-reverse; justify-content: flex-end; }
+.s-top .pk-lab, .s-bottom .pk-lab {
+  writing-mode: vertical-rl; text-align: right;
+}
+.s-top .pk-lab { transform: rotate(180deg); text-align: left; }
+.s-top .pk-stub, .s-bottom .pk-stub { width: 7px; height: 9px; }
+
+.pk-pin:not(:disabled):hover .pk-lab { color: var(--vscode-focusBorder); }
+.pk-pin:not(:disabled):hover .pk-stub { background: var(--vscode-focusBorder); }
+.pk-pin.sel .pk-lab { font-weight: 700; }
+.pk-pin.sel .pk-stub { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+.pk-pin:focus-visible { outline: 1px solid var(--vscode-focusBorder); }
+
+.pk-pin.gpio .pk-stub { background: var(--vscode-charts-green, #2e7d32); }
+.pk-pin.af   .pk-stub { background: var(--vscode-charts-blue, #1565c0); }
+.pk-pin.role .pk-stub { background: var(--vscode-charts-purple, #6a1b9a); }
+.pk-pin.bad  .pk-stub { background: var(--vscode-editorError-foreground, #f14c4c); }
+.pk-pin.gpio .pk-lab, .pk-pin.af .pk-lab, .pk-pin.role .pk-lab { font-weight: 600; }
+.pk-pin.bad .pk-lab { color: var(--vscode-editorError-foreground, #f14c4c); font-weight: 600; }
+/* Supply pads are part of the part, not a choice: present, and quiet. */
+.pk-pin.supply .pk-lab { color: var(--vscode-descriptionForeground); opacity: .55; }
+.pk-pin.supply .pk-stub { opacity: .45; }
+
+.pk-sum {
+  display: grid; grid-template-columns: auto auto; gap: 1px 10px;
+  margin: 14px 0 0; font-size: 10px;
   font-family: var(--vscode-editor-font-family, monospace);
 }
-.viewtoggle { display: flex; gap: 6px; margin: 0 0 8px; }
+.pk-sum dt { color: var(--vscode-descriptionForeground); text-align: right; }
+.pk-sum dd { margin: 0; }
+
+.pk-caption {
+  font-size: 10px; color: var(--vscode-descriptionForeground);
+  text-align: center; margin-top: 8px;
+}
+
+/* A grid array has no sides to lay pins along — draw the balls. */
+.pk.grid { display: flex; flex-direction: column; gap: 2px; width: max-content; }
+.pk-row { display: flex; gap: 2px; align-items: center; }
+.pk-rowlabel {
+  width: 13px; font-size: 9px; color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+.pk-ball {
+  width: 42px; height: 18px; border-radius: 3px; font-size: 8px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  border: 1px solid var(--vscode-panel-border); background: transparent;
+  color: var(--vscode-foreground); cursor: pointer; padding: 0;
+  overflow: hidden; white-space: nowrap;
+}
+.pk-ball:disabled { cursor: default; color: var(--vscode-descriptionForeground); opacity: .6; }
+.pk-ball:not(:disabled):hover { border-color: var(--vscode-focusBorder); }
+.pk-ball.gpio { background: var(--vscode-charts-green, #2e7d32); color: #fff; border-color: transparent; }
+.pk-ball.role { background: var(--vscode-charts-purple, #6a1b9a); color: #fff; border-color: transparent; }
+
+.viewtoggle { display: flex; gap: 0; margin: 0 0 10px; }
 .viewtoggle button {
-  flex: 1; padding: 4px 8px; font-size: 11px;
+  flex: 1; padding: 5px 10px; font-size: 11px; border-radius: 0;
   background: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
 }
+.viewtoggle button:first-child { border-radius: 3px 0 0 3px; }
+.viewtoggle button:last-child { border-radius: 0 3px 3px 0; }
 .viewtoggle button.on {
   background: var(--vscode-button-background); color: var(--vscode-button-foreground);
 }

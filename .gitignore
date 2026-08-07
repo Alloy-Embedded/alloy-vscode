@@ -3,3 +3,6 @@ dist/
 *.vsix
 test/fixture/.vscode/
 .vscode-test/
+
+# output of scripts/preview-package.mjs
+pkg-preview.html

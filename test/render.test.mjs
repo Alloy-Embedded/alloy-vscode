@@ -418,23 +418,37 @@ async function packageTests(ed, data) {
   };
   for (const name of ["top", "bottom", "left", "right"]) {
     assert.equal(side(name), 4, `${name} side should hold 4 of the 16 pins`);
+    // And each pin must carry ITS side's class — that is what decides which
+    // way the label reads. A single shared class collapses the drawing.
+    const open = html.indexOf(`class="pk-${name}"`);
+    const chunk = html.slice(open, html.indexOf("</div>", open));
+    assert.equal((chunk.match(new RegExp(`s-${name}\\b`, "g")) || []).length, 4,
+      `pins on the ${name} side must be marked s-${name}`);
   }
 
   // Supply pads are shown but are not a choice.
-  assert.match(html, /class="pk-pin supply[^"]*" disabled[^>]*>[\s\S]{0,90}vdd/,
+  assert.match(html, /class="pk-pin s-\w+ supply" disabled[^>]*>[\s\S]{0,90}vdd/,
     "a power pad is drawn, and not clickable");
+  // The label reads outward and carries the position; a stub touches the die.
+  assert.match(html, /<span class="pk-lab"><b>1<\/b>pa0<\/span><i class="pk-stub">/,
+    "position and name must be separate elements — one string collides in the "
+    + "vertical writing mode the top and bottom sides use");
+  assert.ok(html.includes('class="pk-scroll"'),
+    "the drawing must be clipped by a scroller, or 36 pins a side overflow the "
+    + "column and paint over the role panels");
   assert.ok(!/data-pin="vdd"/.test(html), "a supply pad is not assignable");
   assert.ok(/data-pin="pa0"/.test(html), "a GPIO is");
 
   // Role locks and validation errors carry over from the logical map.
   const busy = ed.initialState(withPkg);
   busy.roles = { led: { pin: "pa1" } };
-  assert.match(ed.renderPinMap(busy, withPkg), /class="pk-pin role[^"]*"[^>]*disabled/,
+  assert.match(ed.renderPinMap(busy, withPkg), /class="pk-pin s-\w+ role" disabled/,
     "a pin a role owns is locked in the package view too");
   const broken = ed.initialState(withPkg);
   broken.issues = [{ level: "error", role: "i2c", field: "scl", pin: "pa2",
                      message: "x", suggestions: [] }];
-  assert.ok(ed.renderPackage(broken, pkg, {}, new Set(["pa2"])).includes("pk-pin bad"));
+  assert.match(ed.renderPackage(broken, pkg, {}, new Set(["pa2"])),
+    /class="pk-pin s-\w+ bad"/);
 
   // Switching back gives the port list, unchanged.
   const logical = { ...state, physical: false };
@@ -454,6 +468,7 @@ async function packageTests(ed, data) {
   assert.ok(grid.includes("pk grid") && grid.includes("pk-rowlabel"));
   assert.ok(grid.includes("4 balls"), "a BGA has balls, not pins");
   assert.ok(!grid.includes("pk-top"), "a grid has no sides to lay pins along");
+  assert.ok(grid.includes("pk-ball"), "balls, not the quad pin cells");
 
   // Device data is not markup, here either.
   const nasty = { ...pkg, part: "<script>x</script>" };

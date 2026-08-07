@@ -327,6 +327,20 @@ export function peripheralsInMap(data: EditorData): string[] {
  *  part of the part. */
 const ASSIGNABLE = new Set(["gpio", undefined]);
 
+/** The middle of a 144-pin package is a lot of empty space. Spend it on the
+ *  count nobody can get from the drawing: how much of the chip is spoken for. */
+function dieSummary(pkg: ChipPackage, owned: Record<string, string>,
+                    state: State): string {
+  const io = pkg.layout.filter((p) => ASSIGNABLE.has(p.kind));
+  const taken = io.filter((p) => owned[p.signal] || state.pins[p.signal]).length;
+  const rows: [string, string][] = [
+    ["assigned", `${taken} of ${io.length} I/O`],
+    ["supply", `${pkg.layout.length - io.length} pads`],
+  ];
+  return `<dl class="pk-sum">${rows.map(([k, v]) =>
+    `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+}
+
 /**
  * The chip as it physically is: pins around the four sides of a quad package,
  * or a grid for a BGA. Drawn ONLY from a curated `package` fact — the framework
@@ -340,10 +354,14 @@ export function renderPackage(state: State, pkg: ChipPackage,
                               owned: Record<string, string>,
                               badPins: Set<string>): string {
   const isGrid = pkg.layout.some((p) => !/^\d+$/.test(p.position));
-  const cell = (entry: ChipPackage["layout"][number], vertical: boolean) => {
+
+  /** One pin: a small stub against the die, and its label reading outward.
+   *  Two lines of text per pin does not fit 36 to a side — a datasheet does
+   *  not do it either, it puts a tick on the body and the name outside. */
+  const cell = (entry: ChipPackage["layout"][number], side: string) => {
     const role = owned[entry.signal];
     const assign = state.pins[entry.signal];
-    const classes = ["pk-pin"];
+    const classes = ["pk-pin", `s-${side}`];
     if (badPins.has(entry.signal)) {
       classes.push("bad");
     } else if (role) {
@@ -357,12 +375,13 @@ export function renderPackage(state: State, pkg: ChipPackage,
       classes.push("sel");
     }
     const clickable = ASSIGNABLE.has(entry.kind) && !role;
-    return `<button class="${classes.join(" ")}${vertical ? " vert" : ""}"`
+    const title = `pin ${entry.position} · ${entry.signal}`
+      + (role ? ` · ${role}` : assign ? ` · ${assign.label || assign.function}` : "");
+    return `<button class="${classes.join(" ")}"`
       + `${clickable ? ` data-pin="${esc(entry.signal)}"` : " disabled"}`
-      + ` title="${esc(entry.position)} · ${esc(entry.signal)}${
-          role ? ` · ${esc(role)}` : ""}">`
-      + `<span class="pk-num">${esc(entry.position)}</span>`
-      + `<span class="pk-sig">${esc(entry.signal)}</span></button>`;
+      + ` title="${esc(title)}">`
+      + `<span class="pk-lab"><b>${esc(entry.position)}</b>${esc(entry.signal)}</span>`
+      + `<i class="pk-stub"></i></button>`;
   };
 
   if (isGrid) {
@@ -376,11 +395,20 @@ export function renderPackage(state: State, pkg: ChipPackage,
         esc(row)}</span>${entries
           .sort((a, b) => Number(a.position.replace(/\D/g, ""))
                         - Number(b.position.replace(/\D/g, "")))
-          .map((e) => cell(e, false)).join("")}</div>`).join("");
-    return `<div class="pk grid"><div class="pk-gridbody">${body}</div>
-      <div class="pk-caption">${esc(pkg.type)} · ${pkg.pins} balls</div></div>`;
+          .map((e) => `<button class="pk-ball${
+            owned[e.signal] ? " role" : state.pins[e.signal] ? " gpio"
+            : ASSIGNABLE.has(e.kind) ? "" : " supply"}"`
+            + `${ASSIGNABLE.has(e.kind) && !owned[e.signal]
+                ? ` data-pin="${esc(e.signal)}"` : " disabled"}`
+            + ` title="${esc(`${e.position} · ${e.signal}`)}">${esc(e.signal)}</button>`)
+          .join("")}</div>`).join("");
+    return `<div class="pk-scroll"><div class="pk grid">${body}</div></div>
+      <div class="pk-caption">${esc(pkg.part ?? pkg.type)} · ${esc(pkg.type)} · ${
+        pkg.pins} balls</div>`;
   }
 
+  // Counter-clockwise from pin 1, the way every quad datasheet numbers them:
+  // down the left, along the bottom, up the right, back along the top.
   const perSide = Math.floor(pkg.layout.length / 4);
   const ordered = [...pkg.layout].sort((a, b) => Number(a.position) - Number(b.position));
   const left = ordered.slice(0, perSide);
@@ -388,18 +416,21 @@ export function renderPackage(state: State, pkg: ChipPackage,
   const right = ordered.slice(perSide * 2, perSide * 3);
   const top = ordered.slice(perSide * 3);
 
-  return `<div class="pk quad">
-      <div class="pk-top">${[...top].reverse().map((e) => cell(e, true)).join("")}</div>
-      <div class="pk-mid">
-        <div class="pk-left">${left.map((e) => cell(e, false)).join("")}</div>
-        <div class="pk-die">
-          <span class="pk-part">${esc(pkg.part ?? pkg.type)}</span>
-          <span class="pk-type">${esc(pkg.type)} · ${pkg.pins} pins</span>
-        </div>
-        <div class="pk-right">${[...right].reverse().map((e) => cell(e, false)).join("")}</div>
+  return `<div class="pk-scroll"><div class="pk quad">
+      <div class="pk-corner"></div>
+      <div class="pk-top">${[...top].reverse().map((e) => cell(e, "top")).join("")}</div>
+      <div class="pk-corner"></div>
+      <div class="pk-left">${left.map((e) => cell(e, "left")).join("")}</div>
+      <div class="pk-die">
+        <span class="pk-part">${esc(pkg.part ?? pkg.type)}</span>
+        <span class="pk-type">${esc(pkg.type)} · ${pkg.pins} pins</span>
+        ${dieSummary(pkg, owned, state)}
       </div>
-      <div class="pk-bottom">${bottom.map((e) => cell(e, true)).join("")}</div>
-    </div>`;
+      <div class="pk-right">${[...right].reverse().map((e) => cell(e, "right")).join("")}</div>
+      <div class="pk-corner"></div>
+      <div class="pk-bottom">${bottom.map((e) => cell(e, "bottom")).join("")}</div>
+      <div class="pk-corner"></div>
+    </div></div>`;
 }
 
 export function renderPinMap(state: State, data: EditorData): string {
