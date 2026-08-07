@@ -6,7 +6,6 @@
 // "the panel opened"; everything a user actually sees is checked here.
 
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,11 +13,16 @@ import * as esbuild from "esbuild";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
-const STUB = resolve(HERE, "stub", "alloy");
 const FIXTURE = resolve(HERE, "fixture");
 
-const cli = (args) =>
-  JSON.parse(execFileSync(STUB, args, { cwd: FIXTURE, encoding: "utf8" }));
+/**
+ * The CLI payloads, as files. These used to come from running the stub, which
+ * is a /bin/sh script — so this whole suite could only run on a POSIX box, and
+ * the code it covers is pure TypeScript that has to work everywhere. The stub
+ * now serves these same files, so there is still one source of truth.
+ */
+const cli = (name) =>
+  JSON.parse(readFileSync(resolve(FIXTURE, "payloads", `${name}.json`), "utf8"));
 
 /** A module under src/ that imports nothing but src/shared/, so it loads in Node. */
 async function loadModule(...segments) {
@@ -45,8 +49,8 @@ const ALL_TITLES = [
 ];
 
 function payload() {
-  const detail = cli(["board-info", "--json"]);
-  const chip = cli(["chip-info", "st/stm32g0b1"]);
+  const detail = cli("board-info");
+  const chip = cli("chip-info");
   const board = JSON.parse(
     readFileSync(resolve(FIXTURE, "boards", "nucleo_g0b1re", "board.json"), "utf8"));
   // Exercise the "already configured" path, not just empty forms.
@@ -183,7 +187,7 @@ async function reportTests() {
   const rp = await loadReport();
 
   // ---- memory map ----
-  const size = cli(["size", "--json"]);
+  const size = cli("size");
   const memory = rp.renderMemory(size);
   assert.ok(memory.includes("Code") && memory.includes("Data"));
   assert.ok(memory.includes("slot_a") && memory.includes("slot_b"),

@@ -1,49 +1,90 @@
-# Alloy Embedded — VS Code Extension
+# Alloy Embedded
 
-Zero-to-blink on any supported board — and any MCU — for the
-[Alloy framework](https://github.com/Alloy-Embedded/alloy). One portable C++23 app, any silicon.
+Configure, build, flash and debug embedded C++ from the editor — for the
+[Alloy framework](https://github.com/Alloy-Embedded/alloy), where one portable `main.cpp`
+recompiles for any supported MCU by changing a line.
 
-## What it does
+```cpp
+#include <alloy/board.hpp>
+using namespace alloy::literals;
 
-- **Alloy: New Project** — a wizard with two paths:
-  - **From a supported board** — pick vendor → board, name it, scaffold.
-  - **Custom board — choose an MCU** — pick any chip from the database; you get a clean, editable
-    board (`boards/<name>/board.json`) with the MCU and a safe clock set, and you fill in the pins.
-    Free to build for whatever silicon you want.
-- **Libraries (drivers)** — browse the driver registry (sensors, displays, RTCs…) grouped by
-  category in the side bar, and **add** one with a click (`alloy lib add`) — it's vendored into the
-  project and wired into the build automatically. `#include <sht31.hpp>` and go.
-- **Alloy: Setup Environment** — verify/install toolchains via `alloy setup` (all visible in the
-  terminal; the extension never downloads a toolchain on its own).
-- **Status bar + panel** — current board plus build / flash / run / monitor / debug, one click each.
-- **Tasks** of type `alloy` (build/flash/run/monitor/clean/gen) with a GCC problem matcher —
-  compile errors land in the Problems panel.
-- **Alloy: Pick Board** — switch the project's board (`alloy set-board`).
+int main() {
+    board::init();
+    while (true) { board::led.toggle(); alloy::sleep_for(500ms); }
+}
+```
 
-IntelliSense works out of the box: `alloy build` emits `compile_commands.json`, so clangd picks up
-every include and define with no extra setup.
+## Configure the board
+
+**Alloy: Configure Board** opens the chip, not a form:
+
+- **The package** — pins on the four sides of the die (or a ball grid), drawn from curated pinout
+  data. Click a free pin to give it a function and a name; role pins are locked and managed by
+  their panel. Chips whose pinout data cannot be trusted keep a per-port map and say why, rather
+  than showing a drawing that might be wrong.
+- **Every board role** — LED, button, UART, I²C, SPI, PWM, ADC, DAC, CAN, RTC, watchdog, Ethernet,
+  EEPROM, key/value store, filesystem, GPIO bus. Each offers only what the silicon actually has;
+  one it cannot do is disabled **with the reason**.
+- **Problems where they happen** — a pin with no route to its peripheral is a `static_assert` that
+  would fire at build time, when the app opens the bus. Here it is a message on the field, with the
+  pins that *would* work as one-click fixes.
+- **The clock** — a preset profile or any frequency you type, then the whole tree: bus prescalers
+  and the clock each peripheral is fed, with what it implies (a UART's baud error computed the way
+  the driver computes it, a timer's reachable range).
+
+Curated boards open read-only — editing one would change every project that uses it — with
+**Duplicate to edit**.
+
+## Build, run, look
+
+- **Build All Boards** — the same sources on every board you target, with flash and RAM side by
+  side. That is the framework's claim; this is it checked.
+- **Memory & Partitions** — what the last build costs against the chip's real memories, and whether
+  the packed image fits each A/B update slot.
+- **Emulate (Renode)** — run the firmware with no hardware attached.
+- **Monitor Panel** — the serial log with timestamps, a filter (text or `/regex/`), a line to send
+  back, and a sparkline for every `name=value` the device prints.
+- **Debug** — starts a Cortex-Debug session with no file rewritten, and generates a CMSIS-SVD so
+  the debugger shows peripheral registers by name.
+- **Update Device (UART)** — builds both slot images and streams the right one; the device reports
+  which slot it wants, so you cannot ship a wrong-slot binary.
+- **Generate CI Workflow** — a GitHub Actions file that validates your boards and builds your
+  sources for each of them.
+- **Libraries** — browse the driver registry (sensors, displays, RTCs) and add one with a click;
+  it is vendored and wired into the build. `#include <sht31.hpp>` and go.
+
+Tasks of type `alloy` carry a GCC problem matcher, so compile errors land in the Problems panel.
+IntelliSense needs no setup: the build emits `compile_commands.json`.
 
 ## Requirements
 
-The `alloy` CLI (>= 0.1.0):
+The `alloy` CLI, **0.3.0 or newer**:
 
 ```
-uv tool install alloy-embedded      # or: pipx install alloy-embedded
+uv tool install alloy-embedded
 ```
 
-For a source checkout, point `alloy.cliPath` at it in settings (e.g. a wrapper that runs
-`uv --project <checkout>/tools/alloy run alloy`). The Libraries view and custom-board wizard need a
-recent CLI (`lib list --json`, `chips --json`).
+Every fact this extension shows comes from that CLI over versioned JSON — the extension holds no
+knowledge of silicon. If yours is older, the Toolchains view says so and offers the upgrade.
+
+For a source checkout, point `alloy.cliPath` at it in settings.
+
+## Known limits
+
+- STM32G0 and G4 boards get the per-port pin map, not the package drawing: their upstream pinout
+  data does not survive the plausibility check, and a wrong footprint is worse than none.
+- RP2040 and ESP32 have no machine-readable pinout published at all.
+- The UI is English throughout, on purpose — see NORTH_STAR.md.
 
 ## Development
 
 ```
 npm install
 npm run build      # typecheck + bundle (esbuild -> dist/)
-npm test           # headless VS Code integration tests
-# F5 in VS Code opens the Extension Development Host
-npx vsce package --no-dependencies
+npm test           # unit + render tests, then headless VS Code integration
 ```
 
-Architecture and guardrails: [NORTH_STAR.md](NORTH_STAR.md). The CLI is the brain — the extension
-holds no domain logic; every fact comes through `alloy … --json`.
+Architecture and guardrails: [NORTH_STAR.md](https://github.com/Alloy-Embedded/alloy-vscode/blob/main/NORTH_STAR.md).
+The CLI is the brain — every fact comes through `alloy … --json`.
+
+License: MIT

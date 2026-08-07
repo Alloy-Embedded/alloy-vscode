@@ -5,8 +5,10 @@
 // sends the matching image, so the user can't ship a wrong-slot binary. All
 // protocol/logic lives in the CLI ("CLI is the brain"); this file is pure UX.
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
-import { currentBoard, findCli, listPorts, projectName, workspaceRoot } from "./cli";
+import { currentBoard, findCli, listPorts, projectName, runCli, workspaceRoot } from "./cli";
 
 export async function updateDevice(): Promise<void> {
   const root = workspaceRoot();
@@ -53,25 +55,41 @@ export async function updateDevice(): Promise<void> {
     return;
   }
 
-  // 3. One task: build slot-A image, build slot-B image, stream the update.
-  // `alloy image` takes the ELF directly (no objcopy on this machine needed).
+  // 3. Build both slot images, then stream the update.
+  //
+  // The preparation runs through the CLI directly and the directory is made
+  // from Node — an earlier version chained it all with `mkdir -p … && …` in a
+  // ShellExecution, which cannot work on Windows: VS Code's default shell
+  // there is PowerShell, where `mkdir -p` is not valid and 5.1 has no `&&` at
+  // all. Only the streaming step gets a terminal, because that is the one with
+  // output worth watching.
+  const elf = path.join(".alloy", "build-tree", board, "out", `${name}.elf`);
+  const imageA = path.join(".alloy", "update", "a.img");
+  const imageB = path.join(".alloy", "update", "b.img");
+  fs.mkdirSync(path.join(root, ".alloy", "update"), { recursive: true });
+
+  await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification,
+      title: "Alloy: building both slot images…" },
+    async () => {
+      for (const [slot, image] of [["a", imageA], ["b", imageB]] as const) {
+        await runCli(["build", "--slot", slot], root);
+        await runCli(["image", elf, "--set-version", version, "-o", image], root);
+      }
+    });
+
+  // ProcessExecution, not ShellExecution: the arguments reach the CLI as an
+  // argv array, so a path with a space needs no quoting and no shell is
+  // involved on any platform.
   const cli = await findCli();
-  const elf = `.alloy/build-tree/${board}/out/${name}.elf`;
-  const q = (s: string) => `"${s}"`;
-  const cmd = [
-    `${q(cli)} build --slot a`,
-    `${q(cli)} image ${q(elf)} --set-version ${version} -o .alloy/update/a.img`,
-    `${q(cli)} build --slot b`,
-    `${q(cli)} image ${q(elf)} --set-version ${version} -o .alloy/update/b.img`,
-    `${q(cli)} update --port ${q(port)} --image-a .alloy/update/a.img --image-b .alloy/update/b.img`,
-  ].join(" && ");
   const task = new vscode.Task(
     { type: "alloy", action: "update" },
     vscode.TaskScope.Workspace,
     `update (${port})`,
     "alloy",
-    new vscode.ShellExecution(`mkdir -p .alloy/update && ${cmd}`, { cwd: root }),
-    ["$gcc"],
+    new vscode.ProcessExecution(cli, [
+      "update", "--port", port, "--image-a", imageA, "--image-b", imageB,
+    ], { cwd: root }),
   );
   task.presentationOptions = {
     reveal: vscode.TaskRevealKind.Always,

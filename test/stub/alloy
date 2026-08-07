@@ -4,8 +4,16 @@
 # can assert "the extension invoked this exact CLI call" without a real toolchain.
 mark() { [ -n "$ALLOY_STUB_DIR" ] && printf '%s\n' "$*" >"$ALLOY_STUB_DIR/$1"; }
 
+# The render tests read these same files directly (they must run on Windows,
+# where this script cannot). Serving them here keeps one source of truth.
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PAYLOADS="$HERE/../fixture/payloads"
+
+
 case "$1" in
-  --version) echo "0.1.0" ;;
+  # Must satisfy MIN_CLI_VERSION in src/cli.ts — the gate is real, and a
+  # stub that predates it is rejected exactly like an old install would be.
+  --version) echo "0.3.0" ;;
   boards)
     cat <<'JSON'
 {"schema": "alloy.boards.v1", "boards": [
@@ -51,114 +59,17 @@ JSON
 JSON
     ;;
   board-info)
-    # alloy.board_info.v1 — what the configurator opens. A project-local board,
-    # so the editable path is the one the E2E exercises. The extension runs the
-    # CLI with the project root as cwd, so $PWD resolves the fixture's board.
-    cat <<JSON
-{"schema": "alloy.board_info.v1", "id": "nucleo_g0b1re", "name": "Nucleo G0B1RE",
- "chip": "st/stm32g0b1", "family": "stm32g0", "part": "STM32G0B1RE",
- "source": "project", "editable": true,
- "path": "$PWD/boards/nucleo_g0b1re/board.json",
- "clock": {"mode": "profile", "profile": "pll_64mhz", "sysclk_hz": 64000000,
-           "description": "HSI16 -> PLL 64 MHz", "silicon_validated": false},
- "probe": {"kind": "stlink"},
- "roles": {"led": {"pin": "pa5", "active": "high"},
-           "debug_uart": {"peripheral": "usart2", "tx": "pa2", "rx": "pa3", "baud": 115200}},
- "caps": {"led": true, "debug_uart": true, "i2c": false, "spi": false, "net": false},
- "pins_used": [{"pin": "pa5", "owner": "led", "signal": "led"},
-               {"pin": "pa2", "owner": "debug_uart", "signal": "uart tx"},
-               {"pin": "pa3", "owner": "debug_uart", "signal": "uart rx"}],
- "named_pins": [], "issues": []}
-JSON
+    mark "board-info" "$@"
+    cat "$PAYLOADS/board-info.json"
     ;;
   board-clone) mark "board-clone-$3" "$@"; echo "stub: board-clone $2 -> $3 ok" ;;
   size)
-    # alloy.size.v1 — drives the Memory view.
-    cat <<'JSON'
-{"schema": "alloy.size.v1", "board": "nucleo_g0b1re", "chip": "STM32G0B1RE",
- "elf": "/tmp/app.elf", "available": true, "reason": null,
- "sections": {"text": 21400, "data": 108, "bss": 2320, "flash": 21508, "ram": 2428},
- "flash": {"used": 21508, "total": 131072, "base": 134217728, "percent": 16.4},
- "ram": {"used": 2428, "total": 36864, "base": 536870912, "percent": 6.6},
- "slots": {"page_size": 2048, "app_offset": 512, "image_bytes": 22020,
-   "regions": [{"name": "bootloader", "base": 134217728, "size": 32768, "fits": null},
-               {"name": "slot_a", "base": 134250496, "size": 47104, "fits": true},
-               {"name": "slot_b", "base": 134297600, "size": 47104, "fits": true},
-               {"name": "store", "base": 134344704, "size": 4096, "fits": null}]}}
-JSON
+    mark "size" "$@"
+    cat "$PAYLOADS/size.json"
     ;;
   chip-info)
-    # alloy.chip_info.v1 — feeds the visual board configurator, including the
-    # ROLE CATALOGUE that generates one panel per board role.
-    cat <<'JSON'
-{"schema": "alloy.chip_info.v1", "chip": "st/stm32g0b1", "family": "stm32g0",
- "boot_profile": null, "part": "STM32G0B1RE", "pin_count": 5, "package": null,
- "interrupt_count": 32,
- "memories": [{"name": "flash", "kind": "flash", "base": "0x08000000", "size": 131072},
-              {"name": "sram", "kind": "ram", "base": "0x20000000", "size": 36864}],
- "roles": {
-   "led": {"kind": "pin", "required": ["pin"], "optional": ["active", "kind", "label"],
-           "candidates": [], "supported": true, "reason": null},
-   "button": {"kind": "pin", "required": ["pin"], "optional": ["active", "pull", "label"],
-              "candidates": [], "supported": true, "reason": null},
-   "gpio_bus": {"kind": "pins", "required": ["pins"], "optional": ["label"],
-                "candidates": [], "supported": true, "reason": null},
-   "debug_uart": {"kind": "peripheral", "required": ["peripheral", "tx", "rx"],
-     "optional": ["baud", "mode", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "usart2", "ip": "st/usart_v4", "curated": true,
-                     "signals": {"tx": ["pa2"], "rx": ["pa3"]}}]},
-   "i2c": {"kind": "peripheral", "required": ["peripheral", "scl", "sda"],
-     "optional": ["label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "i2c1", "ip": "st/i2c_v2", "curated": true,
-                     "signals": {"scl": ["pb8"], "sda": ["pb9"]}}]},
-   "spi": {"kind": "peripheral", "required": ["peripheral", "sck", "miso", "mosi"],
-     "optional": ["cs", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "spi1", "ip": "st/spi_v2", "curated": true,
-                     "signals": {"sck": ["pb3"], "miso": ["pb4"], "mosi": ["pb5"]}}]},
-   "led_pwm": {"kind": "peripheral", "required": ["peripheral", "channel", "pin"],
-     "optional": ["label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "tim2", "ip": "st/tim_gp16", "curated": true,
-                     "signals": {}, "channels": [{"channel": 1, "pins": ["pa5"]}]}]},
-   "adc": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "adc", "ip": "st/adc_v2", "curated": true,
-                     "signals": {}, "analog_channels": {"vref": 13, "temp": 12}}]},
-   "dac": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated dac peripheral in this chip's data"},
-   "can": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated can peripheral in this chip's data"},
-   "rtc": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated rtc peripheral in this chip's data"},
-   "watchdog": {"kind": "peripheral", "required": ["peripheral"],
-     "optional": ["timeout_ms", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "iwdg", "ip": "st/iwdg_v2", "curated": true, "signals": {}}]},
-   "nvm": {"kind": "peripheral", "required": ["peripheral"], "optional": ["bytes"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "flash", "ip": "st/flash_g0", "curated": true, "signals": {}}]},
-   "fs": {"kind": "peripheral", "required": ["peripheral"], "optional": ["bytes"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "flash", "ip": "st/flash_g0", "curated": true, "signals": {}}]},
-   "eeprom": {"kind": "external", "requires_role": "i2c", "required": ["addr"],
-     "optional": ["bus", "id_addr", "page_size", "bytes", "wp"],
-     "candidates": [], "supported": true, "reason": null},
-   "ethernet": {"kind": "peripheral", "required": ["peripheral", "reset_pin", "phy"],
-     "optional": [], "candidates": [], "supported": false,
-     "reason": "no curated eth peripheral in this chip's data"}},
- "clock_profiles": [
-   {"name": "hsi_16mhz", "description": "HSI 16 MHz (default, no PLL)", "sysclk_hz": 16000000},
-   {"name": "pll_64mhz", "description": "HSI16 -> PLL 64 MHz", "sysclk_hz": 64000000}],
- "gpio_pins": ["pa5", "pa2", "pa3", "pb8", "pb9", "pb3", "pb4", "pb5"],
- "pins": [
-   {"name": "pa2", "port": "a", "index": 2, "functions": [{"peripheral": "usart2", "signal": "tx", "af": 1}]},
-   {"name": "pa3", "port": "a", "index": 3, "functions": [{"peripheral": "usart2", "signal": "rx", "af": 1}]},
-   {"name": "pa5", "port": "a", "index": 5, "functions": [{"peripheral": "tim2", "signal": "ch1", "af": 2}]},
-   {"name": "pb8", "port": "b", "index": 8, "functions": [{"peripheral": "i2c1", "signal": "scl", "af": 6}]},
-   {"name": "pb9", "port": "b", "index": 9, "functions": [{"peripheral": "i2c1", "signal": "sda", "af": 6}]}],
- "peripherals": {
-   "debug_uart": [{"peripheral": "usart2", "tx": "pa2", "rx": "pa3"}],
-   "i2c": [{"peripheral": "i2c1", "scl": "pb8", "sda": "pb9"}],
-   "spi": [{"peripheral": "spi1", "sck": "pb3", "miso": "pb4", "mosi": "pb5"}]}}
-JSON
+    mark "chip-info" "$@"
+    cat "$PAYLOADS/chip-info.json"
     ;;
   clock)
     if [ "$*" != "${*/--graph/}" ]; then

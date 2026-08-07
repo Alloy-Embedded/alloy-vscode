@@ -1,0 +1,10 @@
+{"schema": "alloy.size.v1", "board": "nucleo_g0b1re", "chip": "STM32G0B1RE",
+ "elf": "/tmp/app.elf", "available": true, "reason": null,
+ "sections": {"text": 21400, "data": 108, "bss": 2320, "flash": 21508, "ram": 2428},
+ "flash": {"used": 21508, "total": 131072, "base": 134217728, "percent": 16.4},
+ "ram": {"used": 2428, "total": 36864, "base": 536870912, "percent": 6.6},
+ "slots": {"page_size": 2048, "app_offset": 512, "image_bytes": 22020,
+   "regions": [{"name": "bootloader", "base": 134217728, "size": 32768, "fits": null},
+               {"name": "slot_a", "base": 134250496, "size": 47104, "fits": true},
+               {"name": "slot_b", "base": 134297600, "size": 47104, "fits": true},
+               {"name": "store", "base": 134344704, "size": 4096, "fits": null}]}}

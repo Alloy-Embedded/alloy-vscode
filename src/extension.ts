@@ -2,7 +2,7 @@
 // here beyond wiring (NORTH_STAR: the CLI is the brain).
 
 import * as vscode from "vscode";
-import { setupEnvironment } from "./bootstrap";
+import { offerUpgrade, setupEnvironment } from "./bootstrap";
 import { runAction, AlloyTaskProvider } from "./tasks";
 import { newProject, pickBoard } from "./wizard";
 import { startDebug, generateLaunchJson } from "./debug";
@@ -30,6 +30,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("alloy.setup", wrap(setupEnvironment)),
+    vscode.commands.registerCommand("alloy.upgradeCli", wrap(() =>
+      offerUpgrade("Update the alloy CLI to the version this extension needs?"))),
     vscode.commands.registerCommand("alloy.newProject", wrap(() => newProject(context))),
     vscode.commands.registerCommand("alloy.pickBoard",
       wrap(() => pickBoard(() => statusBar.refresh()))),

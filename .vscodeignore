@@ -1,0 +1,19 @@
+# What ships is the bundle, the stylesheets and the docs a user reads. The
+# sources are on GitHub; shipping them doubled the .vsix for no one's benefit.
+src/**
+test/**
+scripts/**
+node_modules/**
+.vscode/**
+.vscode-test/**
+.github/**
+.alloy/**
+**/*.map
+**/*.ts
+!dist/**/*.js
+tsconfig.json
+esbuild.mjs
+package-lock.json
+*.vsix
+.gitignore
+NORTH_STAR.md

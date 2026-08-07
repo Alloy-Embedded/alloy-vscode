@@ -3,7 +3,8 @@
 
 import * as vscode from "vscode";
 import {
-  CliNotFoundError, currentBoard, findCli, runCli, sizeReport, workspaceRoot,
+  CliNotFoundError, CliOutdatedError, currentBoard, findCli, runCli, sizeReport,
+  workspaceRoot,
 } from "./cli";
 
 // ---- Project actions view ------------------------------------------------
@@ -180,7 +181,7 @@ interface ToolRow {
   installable?: boolean;
 }
 
-type ToolsNode = ToolRow | { error: string };
+type ToolsNode = ToolRow | { error: string; action?: string };
 
 export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
   private readonly emitter = new vscode.EventEmitter<void>();
@@ -194,7 +195,7 @@ export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
     if ("error" in node) {
       const item = new vscode.TreeItem(node.error);
       item.iconPath = new vscode.ThemeIcon("warning");
-      item.command = { command: "alloy.setup", title: "Setup" };
+      item.command = { command: node.action ?? "alloy.setup", title: "Fix" };
       return item;
     }
     const item = new vscode.TreeItem(node.tool);
@@ -217,6 +218,9 @@ export class ToolsProvider implements vscode.TreeDataProvider<ToolsNode> {
     try {
       await findCli();
     } catch (err) {
+      if (err instanceof CliOutdatedError) {
+        return [{ error: err.message, action: "alloy.upgradeCli" }];
+      }
       if (err instanceof CliNotFoundError) {
         return [{ error: "alloy CLI not installed — click to set up" }];
       }

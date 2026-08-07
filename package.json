@@ -1,8 +1,8 @@
 {
   "name": "alloy-vscode",
   "displayName": "Alloy Embedded",
-  "description": "Zero-to-blink for the Alloy embedded framework: setup, new project, build, flash, run, monitor \u2014 same code on every supported MCU.",
-  "version": "0.1.0",
+  "description": "Configure, build, flash and debug embedded C++ from the editor \u2014 one portable app source, any supported MCU.",
+  "version": "0.2.0",
   "publisher": "alloy-embedded",
   "repository": {
     "type": "git",
@@ -13,7 +13,8 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Debuggers"
   ],
   "activationEvents": [
     "workspaceContains:alloy.toml"
@@ -112,6 +113,10 @@
       {
         "command": "alloy.ciInit",
         "title": "Alloy: Generate CI Workflow"
+      },
+      {
+        "command": "alloy.upgradeCli",
+        "title": "Alloy: Upgrade the CLI"
       }
     ],
     "taskDefinitions": [
@@ -218,7 +223,8 @@
     "build": "npm run typecheck && npm run bundle",
     "package": "vsce package --no-dependencies",
     "test:render": "node test/render.test.mjs",
-    "test": "npm run build && npm run test:render && node test/runTest.js"
+    "test": "npm run build && npm run test:unit && node test/runTest.js",
+    "test:unit": "node test/version-gate.test.mjs && npm run test:render"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
@@ -228,5 +234,28 @@
     "esbuild": "^0.24.0",
     "mocha": "^11.7.6",
     "typescript": "^5.5.0"
-  }
+  },
+  "keywords": [
+    "embedded",
+    "microcontroller",
+    "arm",
+    "cortex-m",
+    "stm32",
+    "esp32",
+    "rp2040",
+    "risc-v",
+    "c++",
+    "firmware"
+  ],
+  "icon": "media/icon.png",
+  "homepage": "https://github.com/Alloy-Embedded/alloy",
+  "bugs": {
+    "url": "https://github.com/Alloy-Embedded/alloy-vscode/issues"
+  },
+  "galleryBanner": {
+    "color": "#12171D",
+    "theme": "dark"
+  },
+  "preview": true,
+  "qna": false
 }

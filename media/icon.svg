@@ -1,0 +1,12 @@
+<!-- Marketplace icon. The activity-bar glyph (media/alloy.svg) is monochrome by
+     necessity — it inherits the theme's colour. This one is shown on a gallery
+     card, so it carries the ground and the accent deliberately: the same quad
+     package the configurator draws, which is what the extension is for. -->
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="26" fill="#12171D"/>
+  <g stroke="#E2761B" stroke-width="5" stroke-linecap="round" fill="none">
+    <rect x="34" y="34" width="60" height="60" rx="7"/>
+    <path d="M50 34V18M78 34V18M50 110V94M78 110V94M34 50H18M34 78H18M110 50H94M110 78H94"/>
+  </g>
+  <rect x="53" y="53" width="22" height="22" rx="4" fill="#E2761B"/>
+</svg>

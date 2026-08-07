@@ -24,7 +24,16 @@ const execFileP = promisify(execFile);
 
 export const output = vscode.window.createOutputChannel("Alloy");
 
-export const MIN_CLI_VERSION = "0.1.0";
+/**
+ * The oldest CLI this extension can work with.
+ *
+ * Bump it whenever a NEW verb becomes load-bearing. The point is where the
+ * user finds out: with this too low, an older CLI is accepted at startup and
+ * then fails on the first call with "unsupported envelope", which reads as a
+ * bug in the extension. 0.3.0 is the release that carries board-info,
+ * board-validate, size, matrix, svd, ci-init and `clock --graph`.
+ */
+export const MIN_CLI_VERSION = "0.3.0";
 
 export interface BoardInfo {
   id: string;
@@ -35,6 +44,10 @@ export interface BoardInfo {
 }
 
 export class CliNotFoundError extends Error {}
+
+/** Found our CLI, but too old for the verbs this extension calls. Separate
+ *  from "not found" because the fix is different: upgrade, not install. */
+export class CliOutdatedError extends Error {}
 
 let cachedCliPath: string | null = null;
 
@@ -48,6 +61,7 @@ export async function findCli(): Promise<string> {
     return cachedCliPath;
   }
   const configured = vscode.workspace.getConfiguration("alloy").get<string>("cliPath");
+  let tooOld: string | undefined;
   const candidates = [
     ...(configured ? [configured] : []),
     path.join(os.homedir(), ".local", "bin", exeName("alloy")), // uv tool shims
@@ -60,11 +74,21 @@ export async function findCli(): Promise<string> {
       // exists (the legacy ecosystem shipped an `alloy` printing
       // "alloy 0.5.1.dev10+…"), so exit-0 alone is not proof.
       const version = stdout.trim();
-      if (!/^\d+\.\d+\.\d+$/.test(version) || !versionAtLeast(version, MIN_CLI_VERSION)) {
+      // OUR CLI prints a bare semver. A real-world collision exists (the
+      // legacy ecosystem shipped an `alloy` printing "alloy 0.5.1.dev10+…"),
+      // so exit-0 alone is not proof.
+      if (!/^\d+\.\d+\.\d+$/.test(version)) {
         output.appendLine(
           `rejected ${candidate}: --version printed "${version}" ` +
-          `(want bare semver >= ${MIN_CLI_VERSION} — a legacy 'alloy' CLI?)`,
+          `(want a bare semver — a legacy 'alloy' CLI?)`,
         );
+        continue;
+      }
+      if (!versionAtLeast(version, MIN_CLI_VERSION)) {
+        // Found OUR CLI, just an old one. Saying so is far more useful than
+        // carrying on and failing later on a verb it does not have.
+        output.appendLine(`${candidate} is v${version}, need >= ${MIN_CLI_VERSION}`);
+        tooOld = tooOld ?? version;
         continue;
       }
       cachedCliPath = candidate;
@@ -73,6 +97,12 @@ export async function findCli(): Promise<string> {
     } catch {
       // try the next one
     }
+  }
+  if (tooOld) {
+    throw new CliOutdatedError(
+      `the alloy CLI on this machine is v${tooOld}; this extension needs `
+      + `v${MIN_CLI_VERSION} or newer. Update it with: `
+      + `uv tool upgrade alloy-embedded`);
   }
   throw new CliNotFoundError(
     "alloy CLI not found — run “Alloy: Setup Environment” or set alloy.cliPath",

@@ -6,9 +6,9 @@ on:
   pull_request:
 
 jobs:
-  # Typecheck + the headless VS Code integration tests (the "CLI is the brain"
-  # contract, driven end-to-end against a stubbed alloy CLI). A real display isn't
-  # available on CI, so the extension host runs under xvfb.
+  # The full contract: typecheck, the pure unit/render tests, and the headless
+  # VS Code integration suite driven end-to-end against a stubbed alloy CLI.
+  # A real display isn't available on CI, so the extension host runs under xvfb.
   test:
     runs-on: ubuntu-latest
     steps:
@@ -22,3 +22,35 @@ jobs:
         run: npm run typecheck
       - name: integration tests (headless VS Code)
         run: xvfb-run -a npm test
+      - name: package (the .vsix must build, and stay small)
+        run: |
+          npx vsce package --no-dependencies
+          size=$(stat -c%s *.vsix)
+          echo "vsix: $size bytes"
+          # It shipped src/ and test/ once and doubled; fail if that returns.
+          [ "$size" -lt 262144 ] || { echo "vsix over 256 KB — is .vscodeignore still right?"; exit 1; }
+
+  # Windows and macOS run everything that does NOT need the CLI stub. That stub
+  # is a /bin/sh script, so the end-to-end suite cannot run on Windows — but the
+  # code most likely to break per-platform (the bundle, the version gate, every
+  # render function) is pure TypeScript and is checked here. Before this job the
+  # extension was not even known to COMPILE on Windows.
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: install deps
+        run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: build (all three bundles)
+        run: npm run bundle
+      - name: unit + render tests
+        run: npm run test:unit

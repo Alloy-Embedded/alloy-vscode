@@ -4,7 +4,9 @@
 // `uv tool install alloy` path activates once the packages are published.
 
 import * as vscode from "vscode";
-import { findCli, CliNotFoundError, invalidateCliCache } from "./cli";
+import {
+  CliNotFoundError, CliOutdatedError, findCli, invalidateCliCache,
+} from "./cli";
 
 export async function setupEnvironment(): Promise<void> {
   try {
@@ -22,6 +24,10 @@ export async function setupEnvironment(): Promise<void> {
       terminal.sendText(`${quote(cli)} setup`);
     }
   } catch (err) {
+    if (err instanceof CliOutdatedError) {
+      await offerUpgrade(err.message);
+      return;
+    }
     if (!(err instanceof CliNotFoundError)) {
       throw err;
     }
@@ -43,4 +49,21 @@ export async function setupEnvironment(): Promise<void> {
 
 function quote(p: string): string {
   return /\s/.test(p) ? `"${p}"` : p;
+}
+
+/**
+ * The CLI is ours but too old. Offer the one command that fixes it — running
+ * it in a terminal rather than silently, so the user sees what is installed
+ * (guardrail: the extension never installs anything invisibly).
+ */
+export async function offerUpgrade(message: string): Promise<void> {
+  const choice = await vscode.window.showWarningMessage(
+    message, "Upgrade now", "Not now");
+  if (choice !== "Upgrade now") {
+    return;
+  }
+  const terminal = vscode.window.createTerminal({ name: "alloy upgrade" });
+  terminal.show();
+  terminal.sendText("uv tool upgrade alloy-embedded");
+  invalidateCliCache();
 }
