@@ -86,6 +86,33 @@ capacidades; o plugin só remove atrito.
 
 ## Fora do v1 (corte explícito)
 
-DAP próprio; webviews; telemetria; gerenciamento de Python/venv na
-extensão; c_cpp_properties.json; debug ESP32; SVD viewer; multi-root;
-gerenciador de bibliotecas; edição GUI do alloy.toml; localização.
+DAP próprio; telemetria; gerenciamento de Python/venv na extensão;
+c_cpp_properties.json (o `compile_commands.json` do build-tree já serve
+clangd e IntelliSense); debug ESP32; multi-root; edição GUI do alloy.toml.
+
+**Localização — cortada, e a decisão foi reconfirmada (07/ago/2026).** Não é
+falta de tempo: quase tudo que o usuário lê na tela vem da CLI em inglês —
+as mensagens de validação ("pb3 has no route to i2c1 scl"), as notas de
+clock ("115200 baud → 115107, 0.08% error"), a razão de um role indisponível,
+a tabela da matriz, a saída do monitor. Traduzir a moldura deixaria botões
+em português cercados de conteúdo em inglês, o que é pior que inglês
+consistente num projeto cujo NORTH_STAR, código, docs e CLI são em inglês.
+
+Fazer direito exigiria a CLI devolver **códigos de mensagem + parâmetros** em
+vez de frases prontas, e a extensão traduzir — mudança nos oito envelopes
+JSON, não trabalho de tradução. Se algum dia isso for feito, é essa a forma;
+não `vscode.l10n` em cima das strings de hoje.
+
+### Cortes que foram revistos e construídos
+
+Três itens saíram desta lista porque a necessidade apareceu e o custo caiu:
+
+- **webviews** — o configurador de placa precisa de um mapa de pinos, uma
+  árvore de clock e o desenho do encapsulamento; nada disso cabe em
+  QuickPick. Painéis estáticos (memória, matriz) renderizam de funções puras,
+  sem bundle.
+- **SVD / peripheral viewer** — virou barato: `alloy svd` emite CMSIS-SVD dos
+  mapas de registrador que o `alloy-devices` já cura, e o Cortex-Debug lê
+  `svdFile` nativamente. Zero dado novo.
+- **gerenciador de bibliotecas** — `alloy lib list/add` já existia na CLI; a
+  view é uma lista sobre um envelope JSON.
