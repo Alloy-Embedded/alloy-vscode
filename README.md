@@ -33,7 +33,9 @@ int main() {
   the driver computes it, a timer's reachable range).
 
 Curated boards open read-only — editing one would change every project that uses it — with
-**Duplicate to edit**.
+**Duplicate to edit**. What the *project* chooses stays editable there anyway: a baud rate, a
+watchdog timeout, how much flash to reserve, the clock. Those go to `alloy.toml`, shown with what
+the board itself says, so you can run a framework board faster without forking it.
 
 ## Build, run, look
 

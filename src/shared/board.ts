@@ -34,6 +34,9 @@ export interface RoleSpec {
   kind: "pin" | "pins" | "peripheral" | "external";
   required: string[];
   optional: string[];
+  /** Fields a PROJECT may choose from alloy.toml without owning the board —
+   *  editable even when the board itself is read-only. */
+  project_fields?: string[];
   candidates: RoleCandidate[];
   supported: boolean;
   reason: string | null;
@@ -109,6 +112,11 @@ export interface BoardDetail {
   caps: Record<string, boolean>;
   pins_used: { pin: string; owner: string; signal: string }[];
   named_pins: { pin: string; function: string; label: string | null }[];
+  /** Which values this project overrode, with the board's own beside them. */
+  project_overrides?: {
+    roles: Record<string, Record<string, { board: unknown; project: unknown }>>;
+    clock: { board: string | null; project: Record<string, unknown> } | null;
+  };
   issues: ValidationIssue[];
 }
 

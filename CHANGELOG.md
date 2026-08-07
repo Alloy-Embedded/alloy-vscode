@@ -13,6 +13,10 @@ not have.
 
 - **Any board opens.** A curated board is read-only, with a one-click
   duplicate — editing it in place would change every project that uses it.
+- **What the project chooses stays editable on a curated board**, and is
+  written to `alloy.toml`: baud, watchdog timeout, reserved flash, the clock.
+  Raising the debug baud of a framework board no longer means forking it, and
+  the field says what the board itself specifies beside your value.
 - **All sixteen board roles**, driven by the chip's own role catalogue: a role
   the silicon cannot fill is disabled *with the reason*, an uncurated
   peripheral is listed but unpickable, and a role this panel cannot describe

@@ -151,11 +151,23 @@ async function main() {
   const roRoles = ed.renderRoles(ro, data);
   assert.equal((roRoles.match(/<fieldset/g) || []).length, ALL_ROLES.length,
     "a curated board must still SHOW everything");
-  assert.equal((roRoles.match(/<select/g) || []).length,
-               (roRoles.match(/<select[^>]* disabled/g) || []).length,
-    "every control on a read-only board must be disabled");
+  // Everything the BOARD is stays locked; what the PROJECT chooses does not,
+  // or changing a baud rate would mean duplicating someone else's board.
+  const controls = roRoles.match(/<(select|input)[^>]*>/g) || [];
+  const live = controls.filter((c) => !/ disabled/.test(c));
+  assert.ok(controls.length > live.length, "board fields must be locked");
+  assert.equal(live.length, 4,
+    "exactly the project fields stay editable (baud, timeout_ms, 2x bytes) — "
+    + `got ${live.length}: ${live.join(" ")}`);
+  assert.ok(live.every((c) => /id="f_(debug_uart_baud|watchdog_timeout_ms|nvm_bytes|fs_bytes)"/.test(c)),
+    `an editable control on a read-only board is not a project field: ${live.join(" ")}`);
+  assert.ok(/id="f_debug_uart_baud"[^>]*>\s*<div class="projectfield"/.test(roRoles)
+    || roRoles.includes("saved to alloy.toml"),
+    "a project field must say where its value goes");
   assert.ok(!/data-role="[a-z_]+"(?![^>]*disabled)/.test(roRoles),
     "no role toggle may be operable on a read-only board");
+  assert.ok(!/<select id="f_debug_uart_peripheral"(?![^>]*disabled)/.test(roRoles),
+    "the peripheral behind a role is a board fact — it must stay locked");
 
   // ---- an older CLI with no role catalogue ----
   const { roles: _dropped, ...legacyChip } = data.chip;
@@ -171,6 +183,43 @@ async function main() {
   assert.ok(!("led" in out.roles), "a disabled role must leave board.json");
   assert.deepEqual(out.pins, { pb3: { function: "gpio_out", label: "RELAY" } });
   assert.equal(out.chip, data.board.chip, "the chip must survive a round trip");
+
+  // ---- what goes to alloy.toml instead of board.json ----
+  const proj = ed.initialState({ ...data, detail: { ...data.detail, editable: false } });
+  assert.deepEqual(ed.buildOverrides(proj, data), { roles: {}, clock: null },
+    "an untouched board must write no overrides — otherwise every open pins "
+    + "the board's own defaults into alloy.toml");
+  proj.roles.debug_uart.baud = 921600;
+  proj.roles.debug_uart.tx = "pa9";               // a board fact, must not travel
+  assert.deepEqual(ed.buildOverrides(proj, data).roles,
+    { debug_uart: { baud: 921600 } },
+    "only project fields may reach alloy.toml");
+
+  // The board this project already overrode: board-info reports 115200 as the
+  // board's own and 921600 as ours, and `roles` is ALREADY the overridden one.
+  // Saving with no edit must keep the override, not read it as "equal to the
+  // board" and drop it.
+  const withOverride = {
+    ...data,
+    board: { ...data.board, roles: { ...data.board.roles,
+      debug_uart: { ...data.board.roles.debug_uart, baud: 921600 } } },
+    detail: { ...data.detail, editable: false,
+      roles: { ...data.detail.roles,
+        debug_uart: { ...data.detail.roles.debug_uart, baud: 921600 } },
+      project_overrides: {
+        roles: { debug_uart: { baud: { board: 115200, project: 921600 } } },
+        clock: null,
+      } },
+  };
+  const kept = ed.initialState(withOverride);
+  assert.deepEqual(ed.buildOverrides(kept, withOverride).roles,
+    { debug_uart: { baud: 921600 } },
+    "re-saving an unchanged board must not erase an override it already has");
+  assert.ok(ed.renderRoles(kept, withOverride).includes("board says 115200"),
+    "an overridden field must show what the board itself says");
+  kept.roles.debug_uart.baud = 115200;            // back to the board's value
+  assert.deepEqual(ed.buildOverrides(kept, withOverride).roles, {},
+    "choosing the board's own value must clear the override, not pin it");
 
   const owned = ed.rolePins(edited, data);
   assert.equal(owned.pa2, "debug_uart tx");

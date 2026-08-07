@@ -13,7 +13,11 @@
 //     the result back, so fixing a problem is a loop instead of a reopen.
 
 import * as fs from "node:fs";
+import * as path from "node:path";
 import * as vscode from "vscode";
+import {
+  ProjectOverrides, applyOverrides, keepUnrendered,
+} from "./shared/projectToml";
 import { BoardJson, EditorData } from "./shared/board";
 import {
   boardInfo, chipInfo, clockGraph, cloneBoard, currentBoard, workspaceRoot,
@@ -43,7 +47,8 @@ export async function configureBoard(refresh: () => void): Promise<void> {
   panel.webview.html = shellHtml(panel.webview, { detail, chip, board });
 
   panel.webview.onDidReceiveMessage(async (msg: {
-    type: string; mhz?: number; profile?: string; board?: BoardJson;
+    type: string; mhz?: number; profile?: string; board?: BoardJson | null;
+    overrides?: ProjectOverrides;
   }) => {
     if (msg.type === "clockGraph") {
       // One call returns the whole tree AND, for a solved frequency, the
@@ -78,13 +83,24 @@ export async function configureBoard(refresh: () => void): Promise<void> {
       return;
     }
 
-    if (msg.type === "save" && msg.board) {
-      if (!detail.editable) {
-        void vscode.window.showWarningMessage(
-          `${detail.id} is a framework board — duplicate it to make changes.`);
-        return;
+    if (msg.type === "save") {
+      if (msg.board) {
+        if (!detail.editable) {
+          void vscode.window.showWarningMessage(
+            `${detail.id} is a framework board — duplicate it to change what it IS.`);
+          return;
+        }
+        fs.writeFileSync(detail.path, `${JSON.stringify(msg.board, null, 2)}\n`);
       }
-      fs.writeFileSync(detail.path, `${JSON.stringify(msg.board, null, 2)}\n`);
+      // The project's own choices always land in alloy.toml, whether or not
+      // the board is ours — that is what makes a curated board usable without
+      // forking it to change a baud rate.
+      if (msg.overrides) {
+        const tomlPath = path.join(root, "alloy.toml");
+        const before = fs.readFileSync(tomlPath, "utf8");
+        fs.writeFileSync(tomlPath, applyOverrides(before,
+          keepUnrendered(before, msg.overrides, Object.keys(detail.roles))));
+      }
       refresh();
       // The emitter is the judge: re-read the board and send back what it now
       // thinks, so the panel shows the result of the edit that was just made.
@@ -221,10 +237,11 @@ ${pinCount ? `
 
 <div>
 <div id="roles"></div>
-${readOnly ? "" : `<div class="savebar">
-  <button id="save">Apply to board.json</button>
-  <span id="status" class="status"></span>
-</div>`}
+<div class="savebar">
+  <button id="save">${readOnly ? "Apply to alloy.toml" : "Apply"}</button>
+  <span id="status" class="status">${readOnly
+    ? "this board is the framework's; your choices go to alloy.toml" : ""}</span>
+</div>
 </div>
 </div>
 

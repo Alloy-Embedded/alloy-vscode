@@ -1,67 +1,464 @@
-{"schema": "alloy.chip_info.v1", "chip": "st/stm32g0b1", "family": "stm32g0",
- "boot_profile": null, "part": "STM32G0B1RE", "pin_count": 5, "package": null,
- "interrupt_count": 32,
- "memories": [{"name": "flash", "kind": "flash", "base": "0x08000000", "size": 131072},
-              {"name": "sram", "kind": "ram", "base": "0x20000000", "size": 36864}],
- "roles": {
-   "led": {"kind": "pin", "required": ["pin"], "optional": ["active", "kind", "label"],
-           "candidates": [], "supported": true, "reason": null},
-   "button": {"kind": "pin", "required": ["pin"], "optional": ["active", "pull", "label"],
-              "candidates": [], "supported": true, "reason": null},
-   "gpio_bus": {"kind": "pins", "required": ["pins"], "optional": ["label"],
-                "candidates": [], "supported": true, "reason": null},
-   "debug_uart": {"kind": "peripheral", "required": ["peripheral", "tx", "rx"],
-     "optional": ["baud", "mode", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "usart2", "ip": "st/usart_v4", "curated": true,
-                     "signals": {"tx": ["pa2"], "rx": ["pa3"]}}]},
-   "i2c": {"kind": "peripheral", "required": ["peripheral", "scl", "sda"],
-     "optional": ["label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "i2c1", "ip": "st/i2c_v2", "curated": true,
-                     "signals": {"scl": ["pb8"], "sda": ["pb9"]}}]},
-   "spi": {"kind": "peripheral", "required": ["peripheral", "sck", "miso", "mosi"],
-     "optional": ["cs", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "spi1", "ip": "st/spi_v2", "curated": true,
-                     "signals": {"sck": ["pb3"], "miso": ["pb4"], "mosi": ["pb5"]}}]},
-   "led_pwm": {"kind": "peripheral", "required": ["peripheral", "channel", "pin"],
-     "optional": ["label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "tim2", "ip": "st/tim_gp16", "curated": true,
-                     "signals": {}, "channels": [{"channel": 1, "pins": ["pa5"]}]}]},
-   "adc": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "adc", "ip": "st/adc_v2", "curated": true,
-                     "signals": {}, "analog_channels": {"vref": 13, "temp": 12}}]},
-   "dac": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated dac peripheral in this chip's data"},
-   "can": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated can peripheral in this chip's data"},
-   "rtc": {"kind": "peripheral", "required": ["peripheral"], "optional": ["label"],
-     "candidates": [], "supported": false, "reason": "no curated rtc peripheral in this chip's data"},
-   "watchdog": {"kind": "peripheral", "required": ["peripheral"],
-     "optional": ["timeout_ms", "label"], "supported": true, "reason": null,
-     "candidates": [{"peripheral": "iwdg", "ip": "st/iwdg_v2", "curated": true, "signals": {}}]},
-   "nvm": {"kind": "peripheral", "required": ["peripheral"], "optional": ["bytes"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "flash", "ip": "st/flash_g0", "curated": true, "signals": {}}]},
-   "fs": {"kind": "peripheral", "required": ["peripheral"], "optional": ["bytes"],
-     "supported": true, "reason": null,
-     "candidates": [{"peripheral": "flash", "ip": "st/flash_g0", "curated": true, "signals": {}}]},
-   "eeprom": {"kind": "external", "requires_role": "i2c", "required": ["addr"],
-     "optional": ["bus", "id_addr", "page_size", "bytes", "wp"],
-     "candidates": [], "supported": true, "reason": null},
-   "ethernet": {"kind": "peripheral", "required": ["peripheral", "reset_pin", "phy"],
-     "optional": [], "candidates": [], "supported": false,
-     "reason": "no curated eth peripheral in this chip's data"}},
- "clock_profiles": [
-   {"name": "hsi_16mhz", "description": "HSI 16 MHz (default, no PLL)", "sysclk_hz": 16000000},
-   {"name": "pll_64mhz", "description": "HSI16 -> PLL 64 MHz", "sysclk_hz": 64000000}],
- "gpio_pins": ["pa5", "pa2", "pa3", "pb8", "pb9", "pb3", "pb4", "pb5"],
- "pins": [
-   {"name": "pa2", "port": "a", "index": 2, "functions": [{"peripheral": "usart2", "signal": "tx", "af": 1}]},
-   {"name": "pa3", "port": "a", "index": 3, "functions": [{"peripheral": "usart2", "signal": "rx", "af": 1}]},
-   {"name": "pa5", "port": "a", "index": 5, "functions": [{"peripheral": "tim2", "signal": "ch1", "af": 2}]},
-   {"name": "pb8", "port": "b", "index": 8, "functions": [{"peripheral": "i2c1", "signal": "scl", "af": 6}]},
-   {"name": "pb9", "port": "b", "index": 9, "functions": [{"peripheral": "i2c1", "signal": "sda", "af": 6}]}],
- "peripherals": {
-   "debug_uart": [{"peripheral": "usart2", "tx": "pa2", "rx": "pa3"}],
-   "i2c": [{"peripheral": "i2c1", "scl": "pb8", "sda": "pb9"}],
-   "spi": [{"peripheral": "spi1", "sck": "pb3", "miso": "pb4", "mosi": "pb5"}]}}
+{
+  "schema": "alloy.chip_info.v1",
+  "chip": "st/stm32g0b1",
+  "family": "stm32g0",
+  "boot_profile": null,
+  "part": "STM32G0B1RE",
+  "pin_count": 5,
+  "package": null,
+  "interrupt_count": 32,
+  "memories": [
+    {
+      "name": "flash",
+      "kind": "flash",
+      "base": "0x08000000",
+      "size": 131072
+    },
+    {
+      "name": "sram",
+      "kind": "ram",
+      "base": "0x20000000",
+      "size": 36864
+    }
+  ],
+  "roles": {
+    "led": {
+      "kind": "pin",
+      "required": [
+        "pin"
+      ],
+      "optional": [
+        "active",
+        "kind",
+        "label"
+      ],
+      "candidates": [],
+      "supported": true,
+      "reason": null,
+      "project_fields": []
+    },
+    "button": {
+      "kind": "pin",
+      "required": [
+        "pin"
+      ],
+      "optional": [
+        "active",
+        "pull",
+        "label"
+      ],
+      "candidates": [],
+      "supported": true,
+      "reason": null,
+      "project_fields": []
+    },
+    "gpio_bus": {
+      "kind": "pins",
+      "required": [
+        "pins"
+      ],
+      "optional": [
+        "label"
+      ],
+      "candidates": [],
+      "supported": true,
+      "reason": null,
+      "project_fields": []
+    },
+    "debug_uart": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral",
+        "tx",
+        "rx"
+      ],
+      "optional": [
+        "baud",
+        "mode",
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "usart2",
+          "ip": "st/usart_v4",
+          "curated": true,
+          "signals": {
+            "tx": [
+              "pa2"
+            ],
+            "rx": [
+              "pa3"
+            ]
+          }
+        }
+      ],
+      "project_fields": [
+        "baud"
+      ]
+    },
+    "i2c": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral",
+        "scl",
+        "sda"
+      ],
+      "optional": [
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "i2c1",
+          "ip": "st/i2c_v2",
+          "curated": true,
+          "signals": {
+            "scl": [
+              "pb8"
+            ],
+            "sda": [
+              "pb9"
+            ]
+          }
+        }
+      ],
+      "project_fields": []
+    },
+    "spi": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral",
+        "sck",
+        "miso",
+        "mosi"
+      ],
+      "optional": [
+        "cs",
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "spi1",
+          "ip": "st/spi_v2",
+          "curated": true,
+          "signals": {
+            "sck": [
+              "pb3"
+            ],
+            "miso": [
+              "pb4"
+            ],
+            "mosi": [
+              "pb5"
+            ]
+          }
+        }
+      ],
+      "project_fields": []
+    },
+    "led_pwm": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral",
+        "channel",
+        "pin"
+      ],
+      "optional": [
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "tim2",
+          "ip": "st/tim_gp16",
+          "curated": true,
+          "signals": {},
+          "channels": [
+            {
+              "channel": 1,
+              "pins": [
+                "pa5"
+              ]
+            }
+          ]
+        }
+      ],
+      "project_fields": []
+    },
+    "adc": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "adc",
+          "ip": "st/adc_v2",
+          "curated": true,
+          "signals": {},
+          "analog_channels": {
+            "vref": 13,
+            "temp": 12
+          }
+        }
+      ],
+      "project_fields": []
+    },
+    "dac": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "label"
+      ],
+      "candidates": [],
+      "supported": false,
+      "reason": "no curated dac peripheral in this chip's data",
+      "project_fields": []
+    },
+    "can": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "label"
+      ],
+      "candidates": [],
+      "supported": false,
+      "reason": "no curated can peripheral in this chip's data",
+      "project_fields": []
+    },
+    "rtc": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "label"
+      ],
+      "candidates": [],
+      "supported": false,
+      "reason": "no curated rtc peripheral in this chip's data",
+      "project_fields": []
+    },
+    "watchdog": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "timeout_ms",
+        "label"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "iwdg",
+          "ip": "st/iwdg_v2",
+          "curated": true,
+          "signals": {}
+        }
+      ],
+      "project_fields": [
+        "timeout_ms"
+      ]
+    },
+    "nvm": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "bytes"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "flash",
+          "ip": "st/flash_g0",
+          "curated": true,
+          "signals": {}
+        }
+      ],
+      "project_fields": [
+        "bytes"
+      ]
+    },
+    "fs": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral"
+      ],
+      "optional": [
+        "bytes"
+      ],
+      "supported": true,
+      "reason": null,
+      "candidates": [
+        {
+          "peripheral": "flash",
+          "ip": "st/flash_g0",
+          "curated": true,
+          "signals": {}
+        }
+      ],
+      "project_fields": [
+        "bytes"
+      ]
+    },
+    "eeprom": {
+      "kind": "external",
+      "requires_role": "i2c",
+      "required": [
+        "addr"
+      ],
+      "optional": [
+        "bus",
+        "id_addr",
+        "page_size",
+        "bytes",
+        "wp"
+      ],
+      "candidates": [],
+      "supported": true,
+      "reason": null,
+      "project_fields": []
+    },
+    "ethernet": {
+      "kind": "peripheral",
+      "required": [
+        "peripheral",
+        "reset_pin",
+        "phy"
+      ],
+      "optional": [],
+      "candidates": [],
+      "supported": false,
+      "reason": "no curated eth peripheral in this chip's data",
+      "project_fields": []
+    }
+  },
+  "clock_profiles": [
+    {
+      "name": "hsi_16mhz",
+      "description": "HSI 16 MHz (default, no PLL)",
+      "sysclk_hz": 16000000
+    },
+    {
+      "name": "pll_64mhz",
+      "description": "HSI16 -> PLL 64 MHz",
+      "sysclk_hz": 64000000
+    }
+  ],
+  "gpio_pins": [
+    "pa5",
+    "pa2",
+    "pa3",
+    "pb8",
+    "pb9",
+    "pb3",
+    "pb4",
+    "pb5"
+  ],
+  "pins": [
+    {
+      "name": "pa2",
+      "port": "a",
+      "index": 2,
+      "functions": [
+        {
+          "peripheral": "usart2",
+          "signal": "tx",
+          "af": 1
+        }
+      ]
+    },
+    {
+      "name": "pa3",
+      "port": "a",
+      "index": 3,
+      "functions": [
+        {
+          "peripheral": "usart2",
+          "signal": "rx",
+          "af": 1
+        }
+      ]
+    },
+    {
+      "name": "pa5",
+      "port": "a",
+      "index": 5,
+      "functions": [
+        {
+          "peripheral": "tim2",
+          "signal": "ch1",
+          "af": 2
+        }
+      ]
+    },
+    {
+      "name": "pb8",
+      "port": "b",
+      "index": 8,
+      "functions": [
+        {
+          "peripheral": "i2c1",
+          "signal": "scl",
+          "af": 6
+        }
+      ]
+    },
+    {
+      "name": "pb9",
+      "port": "b",
+      "index": 9,
+      "functions": [
+        {
+          "peripheral": "i2c1",
+          "signal": "sda",
+          "af": 6
+        }
+      ]
+    }
+  ],
+  "peripherals": {
+    "debug_uart": [
+      {
+        "peripheral": "usart2",
+        "tx": "pa2",
+        "rx": "pa3"
+      }
+    ],
+    "i2c": [
+      {
+        "peripheral": "i2c1",
+        "scl": "pb8",
+        "sda": "pb9"
+      }
+    ],
+    "spi": [
+      {
+        "peripheral": "spi1",
+        "sck": "pb3",
+        "miso": "pb4",
+        "mosi": "pb5"
+      }
+    ]
+  }
+}

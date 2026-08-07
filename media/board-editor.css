@@ -336,3 +336,9 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   background: var(--vscode-button-background); color: var(--vscode-button-foreground);
 }
 .viewtoggle button:disabled { opacity: .45; cursor: default; }
+
+/* A field that belongs to the project, not the board — editable even here. */
+.projectfield {
+  font-size: 10px; margin-top: 3px;
+  color: var(--vscode-charts-blue, #1565c0);
+}

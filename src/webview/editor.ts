@@ -10,8 +10,9 @@
 // problem carries the message AND the pins that would work, as one-click fixes.
 
 import {
-  BoardJson, ChipPackage, ClockGraph, EditorData, FIELD_WIDGETS, PinAssign,
-  ROLE_GROUPS, ROLE_TITLES, RoleCandidate, RoleSpec, ValidationIssue, esc,
+  BoardDetail, BoardJson, ChipPackage, ClockGraph, EditorData, FIELD_WIDGETS,
+  PinAssign, ROLE_GROUPS, ROLE_TITLES, RoleCandidate, RoleSpec, ValidationIssue,
+  esc,
 } from "../shared/board";
 
 type Role = Record<string, unknown>;
@@ -28,6 +29,8 @@ export interface State {
   /** Draw the physical package instead of the per-port list. */
   physical: boolean;
   issues: ValidationIssue[];
+  /** What board-info reported this project already overrides. */
+  overrides: BoardDetail["project_overrides"];
   readOnly: boolean;
   status: { text: string; kind: "" | "ok" | "err" };
 }
@@ -49,6 +52,7 @@ export function initialState(data: EditorData): State {
     // for; the port list stays one click away and is the only view otherwise.
     physical: !!data.chip.package,
     issues: data.detail.issues ?? [],
+    overrides: data.detail.project_overrides,
     readOnly: !data.detail.editable,
     status: { text: "", kind: "" },
   };
@@ -155,6 +159,13 @@ function pinSelect(id: string, value: string, allowEmpty: boolean,
   return `${html}</select>`;
 }
 
+/** Is this field the PROJECT's to choose rather than the board's? Those go to
+ *  alloy.toml, which is why they stay editable on a curated board — you do not
+ *  have to duplicate someone else's board to change a baud rate. */
+function projectField(data: EditorData, role: string, field: string): boolean {
+  return (roleSpecs(data)[role]?.project_fields ?? []).includes(field);
+}
+
 function fieldHtml(state: State, data: EditorData, role: string, field: string,
                    cfg: Role): string {
   const widget = FIELD_WIDGETS[field];
@@ -162,26 +173,32 @@ function fieldHtml(state: State, data: EditorData, role: string, field: string,
     return "";
   }
   const id = `f_${role}_${field}`;
+  const isProject = projectField(data, role, field);
+  const locked = state.readOnly && !isProject;
   const current = cfg[field];
   const problems = issueHtml(issuesFor(state, role, field), role, field);
   let control: string;
   if (widget.kind === "pin") {
     control = pinSelect(id, typeof current === "string" ? current : "",
-                        !!widget.optional, data.chip.gpio_pins, state.readOnly);
+                        !!widget.optional, data.chip.gpio_pins, locked);
   } else if (widget.kind === "number") {
     const value = current === undefined ? widget.default : current;
     control = `<input type="number" id="${id}" value="${esc(value)}"`
-      + `${state.readOnly ? " disabled" : ""}>`;
+      + `${locked ? " disabled" : ""}>`;
   } else if (widget.kind === "text") {
     control = `<input type="text" id="${id}" value="${esc(current ?? "")}" `
-      + `placeholder="${esc(widget.placeholder ?? "")}"${state.readOnly ? " disabled" : ""}>`;
+      + `placeholder="${esc(widget.placeholder ?? "")}"${locked ? " disabled" : ""}>`;
   } else {
     const value = current === undefined ? widget.default : current;
-    control = `<select id="${id}"${state.readOnly ? " disabled" : ""}>`
+    control = `<select id="${id}"${locked ? " disabled" : ""}>`
       + widget.choices.map(([v, t]) => option(v, t, String(value) === v)).join("")
       + "</select>";
   }
-  return `<div><label>${esc(widget.label)}</label>${control}${problems}</div>`;
+  const note = isProject
+    ? `<div class="projectfield">yours — saved to alloy.toml${
+        overriddenNote(state, role, field)}</div>`
+    : "";
+  return `<div><label>${esc(widget.label)}</label>${control}${note}${problems}</div>`;
 }
 
 function signalsHtml(state: State, role: string, cfg: Role, cand: RoleCandidate): string {
@@ -307,6 +324,12 @@ export function renderRoles(state: State, data: EditorData): string {
     }
   }
   return html;
+}
+
+/** "board says 115200" beside a value the project changed. */
+function overriddenNote(state: State, role: string, field: string): string {
+  const was = state.overrides?.roles?.[role]?.[field]?.board;
+  return was === undefined ? "" : ` · board says ${esc(String(was))}`;
 }
 
 const shortFn = (f: string) =>
@@ -598,6 +621,43 @@ export function applyField(state: State, role: string, field: string,
   }
 }
 
+/** What the BOARD says for a field, not what this project made of it. */
+function boardValue(state: State, data: EditorData, role: string, field: string) {
+  const stored = state.overrides?.roles?.[role]?.[field];
+  return stored ? stored.board : (data.board.roles?.[role] ?? {})[field];
+}
+
+/** What goes to alloy.toml: the project fields, split out of the roles. */
+export function buildOverrides(state: State, data: EditorData) {
+  const specs = roleSpecs(data);
+  const roles: Record<string, Record<string, string | number>> = {};
+  for (const [role, cfg] of Object.entries(state.roles)) {
+    for (const field of specs[role]?.project_fields ?? []) {
+      const value = cfg?.[field];
+      if (value === undefined) {
+        continue;
+      }
+      // Only record a real choice — matching the board's own value would just
+      // pin a default that is already there.
+      //
+      // Careful: `data.board` is the board AFTER the current overrides, so
+      // comparing against it would find the existing override equal to the
+      // "board value" and drop it — a save with no edits would silently undo
+      // what alloy.toml already said. The stored value comes from board-info.
+      if (value !== boardValue(state, data, role, field)) {
+        (roles[role] ??= {})[field] = value as string | number;
+      }
+    }
+  }
+  const boardProfile = state.overrides?.clock
+    ? state.overrides.clock.board : data.board.clock_profile;
+  const clock = state.clockMode === "custom" && state.solved
+    ? { mhz: Math.round(Number(state.solved.sysclk_hz) / 1e6) }
+    : state.clockProfile && state.clockProfile !== boardProfile
+      ? { profile: state.clockProfile } : null;
+  return { roles, clock };
+}
+
 export function buildBoard(state: State, data: EditorData): BoardJson {
   const board: BoardJson = JSON.parse(JSON.stringify(data.board));
   if (state.clockMode === "custom" && state.solved) {
@@ -842,7 +902,12 @@ export function main(): void {
     }
     state.status = { text: "applying…", kind: "" };
     paint();
-    vscode.postMessage({ type: "save", board: buildBoard(state, data) });
+    vscode.postMessage({
+      type: "save",
+      // A curated board is not ours to rewrite; its project fields are.
+      board: state.readOnly ? null : buildBoard(state, data),
+      overrides: buildOverrides(state, data),
+    });
   });
 
   window.addEventListener("message", (event: MessageEvent) => {
