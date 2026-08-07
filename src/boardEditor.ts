@@ -15,7 +15,9 @@
 import * as fs from "node:fs";
 import * as vscode from "vscode";
 import { BoardJson, EditorData } from "./shared/board";
-import { boardInfo, chipInfo, cloneBoard, currentBoard, runCli, workspaceRoot } from "./cli";
+import {
+  boardInfo, chipInfo, clockGraph, cloneBoard, currentBoard, workspaceRoot,
+} from "./cli";
 
 export async function configureBoard(refresh: () => void): Promise<void> {
   const root = workspaceRoot();
@@ -41,13 +43,15 @@ export async function configureBoard(refresh: () => void): Promise<void> {
   panel.webview.html = shellHtml(panel.webview, { detail, chip, board });
 
   panel.webview.onDidReceiveMessage(async (msg: {
-    type: string; mhz?: number; board?: BoardJson;
+    type: string; mhz?: number; profile?: string; board?: BoardJson;
   }) => {
-    if (msg.type === "solveClock" && typeof msg.mhz === "number") {
+    if (msg.type === "clockGraph") {
+      // One call returns the whole tree AND, for a solved frequency, the
+      // profile to write into board.json.
       try {
-        const { stdout } = await runCli(
-          ["clock", "--chip", detail.chip, "--mhz", String(msg.mhz)], root);
-        void panel.webview.postMessage({ type: "clockResult", result: JSON.parse(stdout) });
+        const graph = await clockGraph(
+          detail.chip, { mhz: msg.mhz, profile: msg.profile }, root);
+        void panel.webview.postMessage({ type: "clockGraph", graph });
       } catch (err) {
         void panel.webview.postMessage({ type: "clockError", message: (err as Error).message });
       }
@@ -204,8 +208,8 @@ ${pinCount ? `
     </div>
     <div id="clock_status" class="hint">${
       isCustom ? esc(String(board.clock?.description ?? "")) : "Enter a frequency and compute."}</div>
-    <div id="clock_tree"></div>
   </div>
+  <div id="clock_tree"></div>
 </fieldset>
 </div>
 

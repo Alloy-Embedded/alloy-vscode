@@ -28,3 +28,16 @@ await build({
   minify: false,
 });
 console.log("bundled dist/webview.js");
+
+// The serial monitor panel's client app.
+await build({
+  entryPoints: ["src/webview/monitorMain.ts"],
+  bundle: true,
+  outfile: "dist/monitor.js",
+  format: "iife",
+  platform: "browser",
+  target: "es2020",
+  sourcemap: true,
+  minify: false,
+});
+console.log("bundled dist/monitor.js");

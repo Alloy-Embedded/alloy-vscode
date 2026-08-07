@@ -220,3 +220,37 @@ export interface MatrixReport {
   failed: number;
   ok: boolean;
 }
+
+/** alloy.clock_graph.v1 — the whole clock, not just the PLL. */
+export interface ClockNode {
+  name: string;
+  label: string;
+  hz: number;
+  parent: string | null;
+  divider: number | null;
+}
+
+export interface ClockConsumer {
+  peripheral: string;
+  class: string | null;
+  node: string;
+  hz: number;
+  notes: { level: "info" | "warning" | "error"; text: string }[];
+}
+
+export interface ClockGraph {
+  chip: string;
+  profile: string;
+  description: string;
+  silicon_validated: boolean;
+  sources: { name: string; hz: number; selected: boolean }[];
+  pll: { m: number; n: number; div: number; vco_hz: number } | null;
+  wait_states: number | null;
+  nodes: ClockNode[];
+  consumers: ClockConsumer[];
+  /** Peripherals whose feed the chip data does not state. */
+  unstated: string[];
+  issues: { level: string; peripheral: string; text: string }[];
+  /** With --mhz: the profile to write into board.json. Null for a named one. */
+  solved_profile: Record<string, unknown> | null;
+}

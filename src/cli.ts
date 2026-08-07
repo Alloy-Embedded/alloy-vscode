@@ -9,13 +9,15 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { BoardDetail, ChipDetail, MatrixReport, SizeReport } from "./shared/board";
+import {
+  BoardDetail, ChipDetail, ClockGraph, MatrixReport, SizeReport,
+} from "./shared/board";
 
 // The envelope shapes live in shared/ because the webview bundle needs them
 // too and must not import this module (it pulls in `vscode`).
 export type {
-  BoardDetail, ChipDetail, MatrixReport, PinFunction, PinInfo, RoleCandidate,
-  RoleSpec, SizeReport, ValidationIssue,
+  BoardDetail, ChipDetail, ClockConsumer, ClockGraph, ClockNode, MatrixReport,
+  PinFunction, PinInfo, RoleCandidate, RoleSpec, SizeReport, ValidationIssue,
 } from "./shared/board";
 
 const execFileP = promisify(execFile);
@@ -263,4 +265,22 @@ export function workspaceRoot(): string | null {
   return fs.existsSync(path.join(folder.uri.fsPath, "alloy.toml"))
     ? folder.uri.fsPath
     : null;
+}
+
+/** clock --graph --json — sources, buses, and what each peripheral is fed.
+ *  `mhz` asks for a solved custom PLL; `profile` reads one of the chip's own. */
+export async function clockGraph(
+  chip: string, opts: { mhz?: number; profile?: string }, cwd?: string,
+): Promise<ClockGraph> {
+  const { stdout } = await runCli([
+    "clock", "--chip", chip, "--graph",
+    ...(opts.mhz ? ["--mhz", String(opts.mhz)] : []),
+    ...(opts.profile ? ["--profile", opts.profile] : []),
+  ], cwd);
+  const graph = JSON.parse(stdout) as ClockGraph & { schema: string };
+  if (graph.schema !== "alloy.clock_graph.v1") {
+    throw new Error("this alloy CLI predates `clock --graph` — update it with: "
+      + "uv tool upgrade alloy-embedded");
+  }
+  return graph;
 }

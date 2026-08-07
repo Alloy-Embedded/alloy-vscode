@@ -1,0 +1,72 @@
+/* Serial monitor. A log you read while it moves, so: monospace, stable row
+   height, and the charts beside it rather than above (they must not push the
+   text you are reading off screen). */
+
+body {
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+  margin: 0; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  height: 100vh; box-sizing: border-box;
+}
+.bar { display: flex; gap: 8px; align-items: center; }
+.bar input[type=search] { flex: 1; }
+input[type=search], input[type=text] {
+  background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px; padding: 5px 8px; font-size: 13px; font-family: inherit;
+  box-sizing: border-box;
+}
+input[type=text] { width: 100%; font-family: var(--vscode-editor-font-family, monospace); }
+button {
+  background: var(--vscode-button-background); color: var(--vscode-button-foreground);
+  border: none; border-radius: 3px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+button.secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+button:focus-visible, input:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px;
+}
+.status {
+  font-size: 11.5px; color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace); white-space: nowrap;
+}
+
+.split { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.log {
+  flex: 1; overflow-y: auto; min-height: 0;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border); border-radius: 4px;
+  padding: 6px 8px;
+  font-family: var(--vscode-editor-font-family, monospace); font-size: 12px;
+  line-height: 1.5;
+}
+.mline { display: flex; gap: 10px; white-space: pre-wrap; word-break: break-word; }
+.mline.partial .mx { opacity: .7; font-style: italic; }
+.mt {
+  color: var(--vscode-descriptionForeground); flex: none;
+  font-variant-numeric: tabular-nums; user-select: none;
+}
+.mempty { color: var(--vscode-descriptionForeground); font-style: italic; }
+
+.charts { width: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.charts:empty { display: none; }
+.mseries {
+  border: 1px solid var(--vscode-panel-border); border-radius: 4px; padding: 6px 8px;
+  color: var(--vscode-charts-blue, #1565c0);
+}
+.mshead { display: flex; justify-content: space-between; align-items: baseline; }
+.msname {
+  font-size: 11.5px; font-weight: 600; color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+.msnow {
+  font-size: 13px; font-variant-numeric: tabular-nums;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+.msrange {
+  font-size: 10px; color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+}

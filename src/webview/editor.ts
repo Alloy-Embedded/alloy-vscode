@@ -10,8 +10,8 @@
 // problem carries the message AND the pins that would work, as one-click fixes.
 
 import {
-  BoardJson, EditorData, FIELD_WIDGETS, PinAssign, ROLE_GROUPS, ROLE_TITLES,
-  RoleCandidate, RoleSpec, ValidationIssue, esc,
+  BoardJson, ClockGraph, EditorData, FIELD_WIDGETS, PinAssign, ROLE_GROUPS,
+  ROLE_TITLES, RoleCandidate, RoleSpec, ValidationIssue, esc,
 } from "../shared/board";
 
 type Role = Record<string, unknown>;
@@ -648,6 +648,14 @@ export function main(): void {
     };
   }
 
+  const askForGraph = (request: { mhz?: number; profile?: string }) => {
+    const status = $("clock_status");
+    if (status && request.mhz) {
+      status.textContent = "Solving…";
+    }
+    vscode.postMessage({ type: "clockGraph", ...request });
+  };
+
   const clockMode = $("clock_mode") as HTMLSelectElement | null;
   const syncClock = () => {
     const custom = clockMode?.value === "custom";
@@ -661,18 +669,15 @@ export function main(): void {
   }
   const profile = $("clock") as HTMLSelectElement | null;
   if (profile) {
-    profile.onchange = () => { state.clockProfile = profile.value; persist(); };
+    profile.onchange = () => {
+      state.clockProfile = profile.value;
+      persist();
+      askForGraph({ profile: profile.value });
+    };
   }
-  $("compute")?.addEventListener("click", () => {
-    const status = $("clock_status");
-    if (status) {
-      status.textContent = "Solving…";
-    }
-    vscode.postMessage({
-      type: "solveClock",
-      mhz: Number(($("target_mhz") as HTMLInputElement).value) || 64,
-    });
-  });
+  $("compute")?.addEventListener("click", () => askForGraph({
+    mhz: Number(($("target_mhz") as HTMLInputElement).value) || 64,
+  }));
   $("duplicate")?.addEventListener("click", () => vscode.postMessage({ type: "duplicate" }));
   $("save")?.addEventListener("click", () => {
     if (state.clockMode === "custom" && !state.solved) {
@@ -687,21 +692,24 @@ export function main(): void {
 
   window.addEventListener("message", (event: MessageEvent) => {
     const msg = event.data as {
-      type: string; result?: Record<string, never>; message?: string;
+      type: string; graph?: ClockGraph; message?: string;
       issues?: ValidationIssue[];
     };
-    if (msg.type === "clockResult") {
-      const result = msg.result as unknown as {
-        profile: Record<string, unknown>; silicon_validated: boolean;
-      };
-      state.solved = result.profile;
+    if (msg.type === "clockGraph") {
+      const graph = msg.graph as ClockGraph;
+      // A solved graph carries the profile to save; a named one does not, and
+      // saving then means "use this profile by name".
+      if (graph.solved_profile) {
+        state.solved = graph.solved_profile;
+      }
       const status = $("clock_status");
       if (status) {
-        status.innerHTML = esc(result.profile.description)
-          + (result.silicon_validated ? ""
-             : ' <span class="warn">— computed, not silicon-validated</span>');
+        status.textContent = graph.description;
       }
-      renderTree($("clock_tree"), msg.result as unknown as Record<string, never>);
+      const host = $("clock_tree");
+      if (host) {
+        host.innerHTML = renderClockTree(graph);
+      }
       persist();
     } else if (msg.type === "clockError") {
       state.solved = null;
@@ -721,45 +729,87 @@ export function main(): void {
     }
   });
 
+  askForGraph(state.clockMode === "custom"
+    ? { mhz: Math.round(Number(($("target_mhz") as HTMLInputElement | null)?.value) || 64) }
+    : { profile: state.clockProfile });
   paint();
 }
 
-function renderTree(host: HTMLElement | null, result: Record<string, never>): void {
-  if (!host) {
-    return;
+const MHZ = (hz: number) =>
+  hz >= 1_000_000 ? `${+(hz / 1e6).toFixed(hz % 1_000_000 ? 2 : 0)} MHz`
+                  : `${+(hz / 1000).toFixed(0)} kHz`;
+
+/**
+ * The clock as it really branches: sources into SYSCLK, SYSCLK into the buses,
+ * and every peripheral on the bus that feeds it — with what that implies. The
+ * old diagram stopped at SYSCLK, which is the half a user does not need next.
+ *
+ * Every number here comes from `alloy clock --graph`; nothing is computed in
+ * TypeScript, so the panel cannot disagree with the firmware about a baud rate.
+ */
+export function renderClockTree(graph: ClockGraph): string {
+  const source = graph.sources.find((s) => s.selected) ?? graph.sources[0];
+  const chain: string[] = [];
+  if (source) {
+    chain.push(cell(source.name.toUpperCase(), MHZ(source.hz), "src"));
   }
-  const r = result as unknown as {
-    pll?: Record<string, number>; profile?: { source?: string };
-    sysclk_hz?: number; wait_states?: number; silicon_validated?: boolean;
-  };
-  const pll = r.pll ?? {};
-  const segments: [string, string][] = [
-    ["Source", r.profile?.source ?? "HSI"],
-    ["÷M", `M = ${pll.m ?? "?"}`],
-    ["×N", `N = ${pll.n ?? "?"}`],
-    ["VCO", `${Math.round((pll.vco_hz ?? 0) / 1e6)} MHz`],
-    [`÷${pll.div ?? "?"}`, "post-divide"],
-    ["SYSCLK", `${Math.round((r.sysclk_hz ?? 0) / 1e6)} MHz`],
-  ];
-  let x = 4;
-  let svg = "";
-  segments.forEach(([label, value], i) => {
-    const hot = i === segments.length - 1;
-    svg += `<rect class="ct-box${hot ? " hot" : ""}" x="${x}" y="18" width="86" `
-      + `height="40" rx="5"/>`
-      + `<text class="ct-t" x="${x + 43}" y="34" text-anchor="middle">${esc(label)}</text>`
-      + `<text class="ct-s" x="${x + 43}" y="48" text-anchor="middle">${esc(value)}</text>`;
-    x += 86;
-    if (i < segments.length - 1) {
-      svg += `<line class="ct-w" x1="${x}" y1="38" x2="${x + 14}" y2="38"/>`;
-      x += 14;
-    }
-  });
-  svg += `<text class="ct-s" x="4" y="74">flash wait states: ${esc(r.wait_states ?? "?")}`
-    + `${r.silicon_validated ? "  ·  silicon-validated ✓" : ""}</text>`;
-  host.innerHTML = `<svg viewBox="0 0 ${x + 4} 80" width="100%" `
-    + `xmlns="http://www.w3.org/2000/svg"><defs>`
-    + `<marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">`
-    + `<path d="M0,0 L6,3 L0,6 z" fill="var(--vscode-descriptionForeground)"/></marker>`
-    + `</defs>${svg}</svg>`;
+  if (graph.pll) {
+    chain.push(cell("PLL",
+      `÷${graph.pll.m} ×${graph.pll.n} ÷${graph.pll.div}`, "pll",
+      `VCO ${MHZ(graph.pll.vco_hz)}`));
+  }
+
+  const byNode = new Map<string, ClockGraph["consumers"]>();
+  for (const consumer of graph.consumers) {
+    byNode.set(consumer.node, [...(byNode.get(consumer.node) ?? []), consumer]);
+  }
+
+  const buses = graph.nodes.map((node) => {
+    const fed = byNode.get(node.name) ?? [];
+    const rows = fed.map((c) => {
+      const note = c.notes[0];
+      return `<div class="ck-consumer">
+          <span class="ck-name">${esc(c.peripheral)}</span>
+          ${note ? `<span class="ck-note ${esc(note.level)}">${esc(note.text)}</span>` : ""}
+        </div>`;
+    }).join("");
+    return `<div class="ck-bus">
+        <div class="ck-bushead">
+          <span class="ck-buslabel">${esc(node.label)}</span>
+          ${node.divider && node.divider > 1
+            ? `<span class="ck-div">÷${node.divider}</span>` : ""}
+          <span class="ck-hz">${MHZ(node.hz)}</span>
+        </div>
+        ${rows || '<div class="ck-empty">nothing declared on this bus</div>'}
+      </div>`;
+  }).join("");
+
+  const flags: string[] = [];
+  if (graph.wait_states !== null) {
+    flags.push(`${graph.wait_states} flash wait state${graph.wait_states === 1 ? "" : "s"}`);
+  }
+  flags.push(graph.silicon_validated
+    ? "silicon-validated ✓" : "computed — not silicon-validated");
+  const problems = graph.issues.map((i) =>
+    `<div class="ck-note ${esc(i.level)}">${esc(i.peripheral)}: ${esc(i.text)}</div>`
+  ).join("");
+
+  return `<div class="ck">
+      <div class="ck-chain">${chain.join('<span class="ck-arrow">→</span>')}</div>
+      <div class="ck-buses">${buses}</div>
+      <div class="ck-flags">${esc(flags.join(" · "))}</div>
+      ${problems}
+      ${graph.unstated.length
+        ? `<div class="ck-unstated">Not on this tree — the chip data does not say
+             what feeds them: ${esc(graph.unstated.join(", "))}</div>`
+        : ""}
+    </div>`;
+}
+
+function cell(label: string, value: string, kind: string, sub = ""): string {
+  return `<div class="ck-cell ${esc(kind)}">
+      <span class="ck-celllabel">${esc(label)}</span>
+      <span class="ck-cellvalue">${esc(value)}</span>
+      ${sub ? `<span class="ck-cellsub">${esc(sub)}</span>` : ""}
+    </div>`;
 }

@@ -10,7 +10,7 @@ export interface AlloyTaskDefinition extends vscode.TaskDefinition {
   board?: string;
 }
 
-const ACTIONS = ["build", "flash", "run", "monitor", "clean", "gen", "emulate"];
+const ACTIONS = ["build", "flash", "run", "monitor", "clean", "gen", "emulate", "ci-init"];
 
 export class AlloyTaskProvider implements vscode.TaskProvider {
   async provideTasks(): Promise<vscode.Task[]> {

@@ -172,6 +172,8 @@ async function main() {
   assert.equal(owned.pa2, "debug_uart tx");
   assert.ok(!("pa5" in owned), "the LED's pin is free once the role is off");
 
+  await clockTests(ed);
+  await monitorTests();
   await reportTests();
   console.log("render tests passed");
 }
@@ -230,3 +232,152 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+async function clockTests(ed) {
+  // A real graph shape: two buses at different frequencies, with the
+  // consequences attached to the peripherals that have them.
+  const graph = {
+    chip: "st/stm32f767", profile: "pll_180mhz",
+    description: "PLL 180 MHz", silicon_validated: true,
+    sources: [{ name: "hsi16", hz: 16000000, selected: true },
+              { name: "lse", hz: 32768, selected: false }],
+    pll: { m: 8, n: 180, div: 2, vco_hz: 360000000 },
+    wait_states: 5,
+    nodes: [
+      { name: "sysclk", label: "SYSCLK", hz: 180000000, parent: null, divider: null },
+      { name: "ahb", label: "AHB · HCLK", hz: 180000000, parent: "sysclk", divider: 1 },
+      { name: "apb", label: "APB · PCLK", hz: 45000000, parent: "ahb", divider: 4 },
+    ],
+    consumers: [
+      { peripheral: "eth", class: "eth", node: "ahb", hz: 180000000, notes: [] },
+      { peripheral: "usart3", class: "uart", node: "apb", hz: 45000000,
+        notes: [{ level: "info", text: "115200 baud → 115089 (0.10% error)" }] },
+      { peripheral: "tim1", class: "pwm", node: "apb", hz: 45000000,
+        notes: [{ level: "warning", text: "16-bit counter: 687 Hz – 22500000 Hz" }] },
+    ],
+    unstated: ["gpioa", "iwdg"],
+    issues: [{ level: "warning", peripheral: "tim1", text: "16-bit counter: 687 Hz – 22500000 Hz" }],
+    solved_profile: null,
+  };
+
+  const html = ed.renderClockTree(graph);
+
+  // The chain: the selected source, then the PLL with its real dividers.
+  assert.ok(html.includes("HSI16") && html.includes("16 MHz"));
+  assert.ok(!html.includes("LSE"), "only the SELECTED source belongs in the chain");
+  assert.ok(html.includes("÷8 ×180 ÷2") && html.includes("VCO 360 MHz"));
+
+  // The buses, with the divider that makes APB slower than the core — the part
+  // the old linear diagram could not show at all.
+  assert.ok(html.includes("AHB · HCLK") && html.includes("180 MHz"));
+  assert.ok(html.includes("APB · PCLK") && html.includes("45 MHz"));
+  assert.ok(html.includes("÷4"), "a divided bus must show its divider");
+  assert.ok(!/ck-div">÷1</.test(html), "÷1 is noise, not information");
+
+  // Peripherals sit under the bus that feeds them, with their consequence.
+  const apbBlock = html.slice(html.indexOf("APB · PCLK"));
+  assert.ok(apbBlock.includes("usart3") && apbBlock.includes("tim1"));
+  assert.ok(apbBlock.includes("0.10% error"));
+  const ahbBlock = html.slice(html.indexOf("AHB · HCLK"), html.indexOf("APB · PCLK"));
+  assert.ok(ahbBlock.includes("eth"), "eth is on AHB, not APB");
+  assert.ok(!ahbBlock.includes("usart3"));
+
+  // Severity survives into the markup, so a bad baud rate is visible as bad.
+  // Scoped to the CONSUMER row: the issues list at the bottom also emits a
+  // severity class, and asserting on the whole document passed even when the
+  // consumer note lost its level.
+  const tim1Row = apbBlock.slice(apbBlock.indexOf("tim1"));
+  assert.ok(/ck-note warning/.test(tim1Row.slice(0, 220)),
+    "a warning next to the peripheral must look like a warning");
+
+  assert.ok(html.includes("5 flash wait states") && html.includes("silicon-validated"));
+  assert.ok(html.includes("gpioa") && html.includes("does not say"),
+    "peripherals the data cannot place must be named, not dropped");
+
+  // An unvalidated custom clock must say so.
+  const computed = ed.renderClockTree(
+    { ...graph, silicon_validated: false, wait_states: 1 });
+  assert.ok(computed.includes("not silicon-validated"));
+  assert.ok(computed.includes("1 flash wait state") &&
+            !computed.includes("1 flash wait states"), "singular");
+
+  // A chip with no PLL data (a named profile) still renders its buses.
+  const named = ed.renderClockTree({ ...graph, pll: null, wait_states: null });
+  assert.ok(!named.includes("VCO") && named.includes("APB · PCLK"));
+}
+
+async function monitorTests() {
+  const m = await loadModule("src", "shared", "monitor.ts");
+  const w = await loadModule("src", "webview", "monitor.ts");
+
+  // ---- what counts as a number worth plotting ----
+  assert.deepEqual(m.extractPoints({ t: 0, line: "temp=21.5 rh=48" }),
+    [{ name: "temp", value: 21.5 }, { name: "rh", value: 48 }]);
+  assert.deepEqual(m.extractPoints({ t: 0, line: "adc: 1003" }),
+    [{ name: "adc", value: 1003 }]);
+  assert.deepEqual(m.extractPoints({ t: 0, line: "count=-12" }),
+    [{ name: "count", value: -12 }]);
+  // Narrow on purpose: charting every bare number would chart timestamps and
+  // addresses too, and a chart of nothing in particular is worse than none.
+  assert.deepEqual(m.extractPoints({ t: 0, line: "booted in 42 ms" }), []);
+  assert.deepEqual(m.extractPoints({ t: 0, line: "alloy uart_echo ready" }), []);
+
+  const lines = [
+    { t: 100, line: "temp=20" }, { t: 200, line: "temp=21" },
+    { t: 300, line: "temp=22 rh=50" }, { t: 400, line: "hello" },
+  ];
+  const series = m.collectSeries(lines);
+  assert.deepEqual(series.map((s) => s.name), ["rh", "temp"], "sorted by name");
+  assert.equal(series[1].points.length, 3);
+  assert.deepEqual(series[1].points[0], { t: 100, value: 20 });
+
+  // A device left running overnight must not grow the panel without bound.
+  const many = Array.from({ length: 500 }, (_, i) => ({ t: i, line: `x=${i}` }));
+  assert.equal(m.collectSeries(many, 240)[0].points.length, 240);
+  assert.equal(m.collectSeries(many, 240)[0].points.at(-1).value, 499,
+    "the cap must drop the OLDEST points, not the newest");
+
+  // ---- filtering ----
+  assert.ok(m.matches("temp=21", ""));
+  assert.ok(m.matches("TEMP=21", "temp"), "plain text is case-insensitive");
+  assert.ok(!m.matches("hello", "temp"));
+  assert.ok(m.matches("temp=21", "/^temp/"), "a /…/ filter is a regex");
+  assert.ok(!m.matches("x temp=21", "/^temp/"));
+  assert.ok(m.matches("anything", "/[/"), "an unfinished regex must not throw");
+
+  // ---- timestamps ----
+  assert.equal(m.stamp(0), "00:00.000");
+  assert.equal(m.stamp(1234), "00:01.234");
+  assert.equal(m.stamp(605000), "10:05.000");
+
+  // ---- rendering ----
+  const html = w.renderLines(lines, "");
+  assert.equal((html.match(/class="mline/g) || []).length, 4);
+  assert.ok(html.includes("00:00.100") && html.includes("temp=20"));
+  assert.ok(w.renderLines(lines, "temp").match(/class="mline/g).length === 3,
+    "the filter hides lines, and the ones left keep their stamps");
+  assert.ok(w.renderLines([], "").includes("waiting for the device"));
+  assert.ok(w.renderLines(lines, "zzz").includes("nothing matches"));
+  assert.ok(w.renderLines([{ t: 5, line: "> ", partial: true }], "")
+    .includes("mline partial"), "a prompt with no newline is marked, not hidden");
+
+  // Device output is not markup.
+  assert.ok(w.renderLines([{ t: 0, line: "<script>x</script>" }], "")
+    .includes("&lt;script&gt;"), "a device must not be able to inject HTML");
+
+  const charts = w.renderSeries(lines);
+  assert.ok(charts.includes("temp") && charts.includes("<path"));
+  assert.ok(charts.includes("20 … 22"), "the range tells you the scale");
+  assert.equal(w.renderSeries([{ t: 0, line: "no numbers here" }]), "",
+    "no numbers means no chart, not an empty one");
+
+  // A single point has no line to draw, and must not produce a broken path.
+  assert.equal(m.sparkPath([{ value: 1 }], 100, 10), "");
+  assert.ok(m.sparkPath([{ value: 1 }, { value: 2 }], 100, 10).startsWith("M0.0,"));
+  // A flat series must not divide by zero. Asserting on the shape alone was not
+  // enough: without the guard the path is "M0.0,NaN L100.0,NaN", which still
+  // contains the coordinates and renders nothing.
+  const flat = m.sparkPath([{ value: 5 }, { value: 5 }], 100, 10);
+  assert.ok(!flat.includes("NaN"), `flat series produced ${flat}`);
+  assert.ok(/M0\.0,\d/.test(flat) && /L100\.0,\d/.test(flat));
+}

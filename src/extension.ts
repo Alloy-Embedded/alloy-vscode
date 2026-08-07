@@ -12,6 +12,7 @@ import { LibrariesProvider, addLibrary } from "./libraries";
 import { configureBoard } from "./boardEditor";
 import { updateDevice } from "./updateDevice";
 import { showMatrix, showMemory } from "./panels";
+import { openMonitor } from "./monitorPanel";
 import { workspaceRoot } from "./cli";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -40,6 +41,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("alloy.emulate", wrap(() => runAction("emulate"))),
     vscode.commands.registerCommand("alloy.buildAll", wrap(showMatrix)),
     vscode.commands.registerCommand("alloy.memory", wrap(showMemory)),
+    vscode.commands.registerCommand("alloy.monitorPanel",
+      wrap(() => openMonitor(context.extensionUri))),
+    vscode.commands.registerCommand("alloy.ciInit", wrap(async () => {
+      await runAction("ci-init");
+    })),
     vscode.commands.registerCommand("alloy.debug", wrap(startDebug)),
     vscode.commands.registerCommand("alloy.generateLaunchJson", wrap(generateLaunchJson)),
     vscode.tasks.registerTaskProvider("alloy", new AlloyTaskProvider()),

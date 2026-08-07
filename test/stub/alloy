@@ -161,6 +161,28 @@ JSON
 JSON
     ;;
   clock)
+    if [ "$*" != "${*/--graph/}" ]; then
+      # alloy.clock_graph.v1 — the whole tree the configurator draws: sources,
+      # buses with their dividers, and the clock each peripheral is fed.
+      cat <<'JSON'
+{"schema": "alloy.clock_graph.v1", "chip": "st/stm32g0b1",
+ "profile": "pll_64mhz", "description": "HSI16 /1 x8 /2 = 64 MHz",
+ "silicon_validated": true,
+ "sources": [{"name": "hsi16", "hz": 16000000, "selected": true},
+             {"name": "lsi", "hz": 32000, "selected": false}],
+ "pll": {"m": 1, "n": 8, "div": 2, "vco_hz": 128000000},
+ "wait_states": 2,
+ "nodes": [{"name": "sysclk", "label": "SYSCLK", "hz": 64000000, "parent": null, "divider": null},
+           {"name": "ahb", "label": "AHB \u00b7 HCLK", "hz": 64000000, "parent": "sysclk", "divider": 1},
+           {"name": "apb", "label": "APB \u00b7 PCLK", "hz": 32000000, "parent": "ahb", "divider": 2}],
+ "consumers": [{"peripheral": "usart2", "class": "uart", "node": "apb", "hz": 32000000,
+                "notes": [{"level": "info", "text": "115200 baud -> 115107 (0.08% error)"}]},
+               {"peripheral": "tim2", "class": "pwm", "node": "apb", "hz": 32000000,
+                "notes": [{"level": "info", "text": "16-bit counter: 488 Hz - 16000000 Hz"}]}],
+ "unstated": ["gpioa", "iwdg"], "issues": [], "solved_profile": null}
+JSON
+      exit 0
+    fi
     # alloy.clock.v1 — parametric PLL solve for the configurator's custom preset.
     cat <<'JSON'
 {"schema": "alloy.clock.v1", "sysclk_hz": 48000000, "wait_states": 1,

@@ -104,6 +104,14 @@
         "command": "alloy.refreshMemory",
         "title": "Alloy: Refresh Memory Usage",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "alloy.monitorPanel",
+        "title": "Alloy: Monitor Panel (filter + plot)"
+      },
+      {
+        "command": "alloy.ciInit",
+        "title": "Alloy: Generate CI Workflow"
       }
     ],
     "taskDefinitions": [
@@ -115,7 +123,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "description": "build | flash | run | monitor | clean | gen | emulate"
+            "description": "build | flash | run | monitor | clean | gen | emulate | ci-init"
           },
           "board": {
             "type": "string",
