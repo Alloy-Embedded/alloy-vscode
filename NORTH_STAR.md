@@ -79,8 +79,13 @@ capacidades; o plugin só remove atrito.
   testes @vscode/test-electron com `alloy` stub.
 - **P2 — debug ARM** (Cortex-Debug + debug-info; validar em silício nas
   placas que temos).
-- **P3 — polish + marketplace** (vsce + ovsx, walkthrough de onboarding,
-  problem matcher refinado, Windows GA após o passe P0 provar no CI).
+- **P3 — polish + marketplace** — publicação automatizada FEITA
+  (`.github/workflows/release.yml`: tag `v*` → vsce + ovsx, com dois portões:
+  versão do `package.json` igual à tag, e a versão de CLI que o
+  `MIN_CLI_VERSION` exige tem de estar no PyPI — foi esse o erro real, uma
+  extensão pedindo uma CLI que só existia num checkout). Falta: walkthrough de
+  onboarding. Windows entrou no CI (job `portable`); GA continua dependendo de
+  alguém rodar o fluxo completo numa máquina Windows de verdade.
 - **P4 — ESP32 debug interativo** (openocd-esp32 + gdb xtensa) e extras
   (SVD/peripheral viewer, RTT, plotter) — só com demanda real.
 

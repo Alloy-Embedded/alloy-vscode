@@ -84,6 +84,13 @@ npm run build      # typecheck + bundle (esbuild -> dist/)
 npm test           # unit + render tests, then headless VS Code integration
 ```
 
+### Releasing
+
+Push a tag `vX.Y.Z` that matches `package.json`. The workflow refuses to publish
+if the tag disagrees, or if the CLI version `MIN_CLI_VERSION` demands is not on
+PyPI yet — release the CLI first. Needs `VSCE_PAT` in repo secrets; `OVSX_PAT`
+is optional and its step is skipped when absent.
+
 Architecture and guardrails: [NORTH_STAR.md](https://github.com/Alloy-Embedded/alloy-vscode/blob/main/NORTH_STAR.md).
 The CLI is the brain — every fact comes through `alloy … --json`.
 
