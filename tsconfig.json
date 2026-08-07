@@ -3,7 +3,10 @@
     "module": "Node16",
     "moduleResolution": "Node16",
     "target": "ES2022",
-    "lib": ["ES2022"],
+    // DOM is here for src/webview/ only — that bundle runs in the webview, not
+    // in Node. The extension host code must keep using the vscode API, never
+    // these globals.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "outDir": "dist",
     "strict": true,
     "noUnusedLocals": true,

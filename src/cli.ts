@@ -9,6 +9,14 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { BoardDetail, ChipDetail } from "./shared/board";
+
+// The envelope shapes live in shared/ because the webview bundle needs them
+// too and must not import this module (it pulls in `vscode`).
+export type {
+  BoardDetail, ChipDetail, PinFunction, PinInfo, RoleCandidate, RoleSpec,
+  ValidationIssue,
+} from "./shared/board";
 
 const execFileP = promisify(execFile);
 
@@ -167,32 +175,46 @@ export async function listChips(): Promise<ChipInfo[]> {
   return envelope.chips;
 }
 
-export interface PinFunction {
-  peripheral: string;
-  signal: string;
-  af?: number;
+/** board-info --json — works for ANY board, which is what lets the configurator
+ *  open a curated one instead of refusing. */
+export async function boardInfo(boardId: string | undefined, cwd: string): Promise<BoardDetail> {
+  const { stdout } = await runCli(
+    ["board-info", ...(boardId ? [boardId] : []), "--json"], cwd);
+  const info = JSON.parse(stdout) as BoardDetail & { schema: string };
+  if (info.schema !== "alloy.board_info.v1") {
+    throw new Error(
+      "this alloy CLI predates `board-info` — update it with: uv tool upgrade alloy-embedded");
+  }
+  return info;
 }
 
-export interface PinInfo {
-  name: string;
-  port: string | null;
-  index: number | null;
-  functions: PinFunction[];
+/** board-clone — the "duplicate to edit" path off a read-only curated board. */
+export async function cloneBoard(sourceId: string, newId: string, cwd: string): Promise<void> {
+  await runCli(["board-clone", sourceId, newId], cwd);
+  await runCli(["set-board", newId], cwd);
 }
 
-export interface ChipDetail {
-  chip: string;
-  family: string | null;
-  clock_profiles: { name: string; description: string; sysclk_hz: number | null }[];
-  boot_profile: string | null;
-  gpio_pins: string[];
-  /** Per-pin function map (CubeMX-style picker data). Absent on pre-pins CLIs. */
-  pins?: PinInfo[];
-  peripherals: {
-    debug_uart: { peripheral: string; tx?: string; rx?: string }[];
-    i2c: { peripheral: string; scl?: string; sda?: string }[];
-    spi: { peripheral: string; sck?: string; mosi?: string; miso?: string }[];
-  };
+/** alloy.size.v1 — what the last build costs, against the chip's memories. */
+export interface SizeReport {
+  board: string;
+  chip: string | null;
+  available: boolean;
+  reason: string | null;
+  flash: { used: number | null; total: number | null; percent: number | null };
+  ram: { used: number | null; total: number | null; percent: number | null };
+  slots: {
+    image_bytes: number | null;
+    regions: { name: string; base: number; size: number; fits: boolean | null }[];
+  } | null;
+}
+
+export async function sizeReport(cwd: string): Promise<SizeReport> {
+  const { stdout } = await runCli(["size", "--json"], cwd);
+  const report = JSON.parse(stdout) as SizeReport & { schema: string };
+  if (report.schema !== "alloy.size.v1") {
+    throw new Error("unsupported size envelope — update the alloy CLI");
+  }
+  return report;
 }
 
 /** chip-info <chip> — clock profiles + pins + peripherals for the visual editor. */

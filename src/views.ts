@@ -2,7 +2,9 @@
 // presentation — every fact comes from the CLI (setup --check --json).
 
 import * as vscode from "vscode";
-import { findCli, runCli, workspaceRoot, currentBoard, CliNotFoundError } from "./cli";
+import {
+  CliNotFoundError, currentBoard, findCli, runCli, sizeReport, workspaceRoot,
+} from "./cli";
 
 // ---- Project actions view ------------------------------------------------
 
@@ -52,6 +54,107 @@ export class ActionsProvider implements vscode.TreeDataProvider<ActionSpec> {
   getChildren(): ActionSpec[] {
     const hasProject = workspaceRoot() !== null;
     return ACTIONS.filter((a) => hasProject || !a.needsProject);
+  }
+}
+
+// ---- Memory view ---------------------------------------------------------
+// What the last build costs. The build already ran `size`; this keeps the
+// number on screen instead of letting it scroll away in the terminal, and
+// against the chip's REAL memories so "is this close to full?" is answerable
+// at a glance. Reads a built ELF — never triggers a compile.
+
+interface MemRow {
+  label: string;
+  detail: string;
+  icon: string;
+  warn?: boolean;
+  command?: string;
+}
+
+function bar(percent: number | null): string {
+  if (percent === null) {
+    return "";
+  }
+  const filled = Math.min(10, Math.max(0, Math.round(percent / 10)));
+  return `${"█".repeat(filled)}${"░".repeat(10 - filled)} ${percent.toFixed(1)}%`;
+}
+
+function kb(bytes: number | null): string {
+  if (bytes === null) {
+    return "?";
+  }
+  return bytes >= 1024 ? `${(bytes / 1024).toFixed(1)}K` : `${bytes} B`;
+}
+
+export class MemoryProvider implements vscode.TreeDataProvider<MemRow> {
+  private readonly emitter = new vscode.EventEmitter<void>();
+  readonly onDidChangeTreeData = this.emitter.event;
+
+  refresh(): void {
+    this.emitter.fire();
+  }
+
+  getTreeItem(row: MemRow): vscode.TreeItem {
+    const item = new vscode.TreeItem(row.label);
+    item.description = row.detail;
+    item.iconPath = new vscode.ThemeIcon(
+      row.icon,
+      row.warn ? new vscode.ThemeColor("errorForeground") : undefined);
+    item.tooltip = `${row.label} ${row.detail}`;
+    if (row.command) {
+      item.command = { command: row.command, title: row.label };
+    }
+    return item;
+  }
+
+  async getChildren(): Promise<MemRow[]> {
+    const root = workspaceRoot();
+    if (!root) {
+      return [];
+    }
+    let report;
+    try {
+      report = await sizeReport(root);
+    } catch (err) {
+      return [{ label: "size unavailable", detail: (err as Error).message, icon: "warning" }];
+    }
+    if (!report.available) {
+      return [{
+        label: report.reason ?? "no build yet",
+        detail: "click to build",
+        icon: "circle-outline",
+        command: "alloy.build",
+      }];
+    }
+    const rows: MemRow[] = [
+      {
+        label: `Flash  ${kb(report.flash.used)} / ${kb(report.flash.total)}`,
+        detail: bar(report.flash.percent),
+        icon: "chip",
+        warn: (report.flash.percent ?? 0) > 90,
+      },
+      {
+        label: `RAM  ${kb(report.ram.used)} / ${kb(report.ram.total)}`,
+        detail: bar(report.ram.percent),
+        icon: "server",
+        warn: (report.ram.percent ?? 0) > 90,
+      },
+    ];
+    // Update slots: the number that decides whether a field update can ship.
+    for (const region of report.slots?.regions ?? []) {
+      if (region.fits === null) {
+        continue;
+      }
+      rows.push({
+        label: `${region.name}  ${kb(region.size)}`,
+        detail: region.fits
+          ? `image ${kb(report.slots?.image_bytes ?? null)} — fits`
+          : `image ${kb(report.slots?.image_bytes ?? null)} — TOO BIG`,
+        icon: region.fits ? "package" : "error",
+        warn: !region.fits,
+      });
+    }
+    return rows;
   }
 }
 

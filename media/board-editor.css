@@ -1,0 +1,153 @@
+/* Board configurator. Every colour is a VS Code theme token, so the panel
+   belongs to whatever theme the user picked rather than to us. */
+
+body {
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+  padding: 14px 18px;
+  font-size: 13px;
+}
+h1 { font-size: 18px; font-weight: 500; margin: 0 0 2px; }
+.sub { color: var(--vscode-descriptionForeground); margin: 0 0 14px; }
+.cols {
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+fieldset {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+}
+fieldset.unsupported { opacity: .55; }
+fieldset.has-error { border-color: var(--vscode-editorError-foreground, #f14c4c); }
+legend { padding: 0 6px; font-weight: 500; }
+label { display: block; margin: 8px 0 3px; color: var(--vscode-descriptionForeground); }
+select, input[type=number], input[type=text], input[type=search] {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px;
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 13px;
+}
+select:disabled, input:disabled { opacity: .6; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; }
+.row > div { flex: 1; min-width: 130px; }
+.toggle { display: flex; align-items: center; gap: 8px; color: var(--vscode-foreground); margin: 0; }
+.off { opacity: .4; pointer-events: none; }
+
+button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none; border-radius: 3px;
+  padding: 8px 18px; font-size: 13px; cursor: pointer;
+}
+button:hover { background: var(--vscode-button-hoverBackground); }
+button.secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.banner {
+  display: flex; gap: 14px; align-items: center; justify-content: space-between;
+  background: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-focusBorder);
+  padding: 10px 14px; border-radius: 0 4px 4px 0; margin: 0 0 14px;
+}
+.banner.err { border-left-color: var(--vscode-editorError-foreground, #f14c4c); }
+.banner.warn { border-left-color: var(--vscode-editorWarning-foreground, #cca700); }
+.banner button { flex: none; }
+.banner ul { margin: 4px 0 0; padding-left: 18px; }
+
+.grouptitle {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--vscode-descriptionForeground); font-weight: 600; margin: 16px 0 6px;
+}
+.reason, .hint {
+  font-size: 11px; color: var(--vscode-descriptionForeground); margin-top: 6px;
+}
+.verbatim {
+  font-family: var(--vscode-editor-font-family, monospace); font-size: 11px;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 7px 9px; border-radius: 3px; white-space: pre-wrap;
+  word-break: break-all; margin-top: 6px;
+}
+
+/* A problem is shown where it happened, with a way out. */
+.fielderr {
+  font-size: 11px; margin-top: 4px;
+  color: var(--vscode-editorError-foreground, #f14c4c);
+}
+.fieldwarn { font-size: 11px; margin-top: 4px;
+  color: var(--vscode-editorWarning-foreground, #cca700); }
+.fix {
+  display: inline-block; margin: 3px 4px 0 0; padding: 1px 7px;
+  border-radius: 10px; font-size: 11px; cursor: pointer;
+  border: 1px solid var(--vscode-focusBorder);
+  background: transparent; color: var(--vscode-foreground);
+}
+.fix:hover { background: var(--vscode-list-hoverBackground); }
+
+/* ── pin map ── */
+.filters { display: flex; gap: 8px; margin: 0 0 10px; }
+.filters > * { flex: 1; }
+.port { margin: 0 0 10px; }
+.portname {
+  font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--vscode-descriptionForeground); margin-bottom: 4px;
+}
+.pins { display: flex; flex-wrap: wrap; gap: 4px; }
+.pin {
+  min-width: 44px; text-align: center; padding: 5px 4px; border-radius: 4px;
+  border: 1px solid var(--vscode-panel-border); cursor: pointer; font-size: 11px;
+  background: transparent; color: var(--vscode-foreground);
+}
+.pin:hover { border-color: var(--vscode-focusBorder); }
+.pin.sel { outline: 2px solid var(--vscode-focusBorder); }
+.pin.gpio { background: var(--vscode-charts-green, #2e7d32); color: #fff; border-color: transparent; }
+.pin.af { background: var(--vscode-charts-blue, #1565c0); color: #fff; border-color: transparent; }
+.pin.role { background: var(--vscode-charts-purple, #6a1b9a); color: #fff; border-color: transparent; cursor: not-allowed; }
+.pin.bad { background: var(--vscode-editorError-foreground, #f14c4c); color: #fff; border-color: transparent; }
+.pin.dim { opacity: .25; }
+.pin small {
+  display: block; font-size: 9px; opacity: .85; max-width: 64px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.legendrow {
+  display: flex; flex-wrap: wrap; gap: 12px; margin: 2px 0 10px;
+  font-size: 11px; color: var(--vscode-descriptionForeground);
+}
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+#pin_detail { position: sticky; top: 8px; }
+#pd_empty { color: var(--vscode-descriptionForeground); }
+
+/* ── clock tree ── */
+#clock_tree { margin-top: 10px; width: 100%; overflow-x: auto; }
+.ct-box { fill: var(--vscode-input-background); stroke: var(--vscode-panel-border); }
+.ct-box.hot { stroke: var(--vscode-charts-blue, #1565c0); stroke-width: 1.5; }
+.ct-t { fill: var(--vscode-foreground); font-size: 11px; font-family: var(--vscode-font-family); }
+.ct-s { fill: var(--vscode-descriptionForeground); font-size: 9px; font-family: var(--vscode-font-family); }
+.ct-w { stroke: var(--vscode-descriptionForeground); marker-end: url(#arr); }
+.warn { color: var(--vscode-editorWarning-foreground, #cca700); }
+
+/* ── save bar ── */
+.savebar {
+  display: flex; align-items: center; gap: 12px; margin-top: 6px;
+  position: sticky; bottom: 0; padding: 8px 0;
+  background: var(--vscode-editor-background);
+}
+.savebar .status { font-size: 12px; color: var(--vscode-descriptionForeground); }
+.savebar .status.ok { color: var(--vscode-testing-iconPassed, #2e7d32); }
+.savebar .status.err { color: var(--vscode-editorError-foreground, #f14c4c); }

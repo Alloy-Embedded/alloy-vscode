@@ -28,9 +28,16 @@ describe("alloy-vscode smoke", () => {
       "alloy.debug", "alloy.generateLaunchJson",
       "alloy.refreshTools", "alloy.installTools",
       "alloy.addLibrary", "alloy.refreshLibraries", "alloy.updateDevice",
+      "alloy.refreshMemory",
     ]) {
       assert.ok(all.includes(cmd), `missing command ${cmd}`);
     }
+  });
+
+  it("reports memory usage from the CLI", async () => {
+    // The Memory view reads `alloy size --json`; refreshing must not throw even
+    // before anything is built (the provider renders that as a state, not an error).
+    await vscode.commands.executeCommand("alloy.refreshMemory");
   });
 
   it("runs the build command end-to-end against the stubbed CLI", async () => {

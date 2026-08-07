@@ -87,6 +87,11 @@
         "command": "alloy.refreshLibraries",
         "title": "Alloy: Refresh Libraries",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "alloy.refreshMemory",
+        "title": "Alloy: Refresh Memory Usage",
+        "icon": "$(refresh)"
       }
     ],
     "taskDefinitions": [
@@ -134,6 +139,11 @@
           "icon": "media/alloy.svg"
         },
         {
+          "id": "alloyMemory",
+          "name": "Memory",
+          "icon": "media/alloy.svg"
+        },
+        {
           "id": "alloyLibraries",
           "name": "Libraries",
           "icon": "media/alloy.svg"
@@ -173,6 +183,11 @@
           "command": "alloy.refreshLibraries",
           "when": "view == alloyLibraries",
           "group": "navigation"
+        },
+        {
+          "command": "alloy.refreshMemory",
+          "when": "view == alloyMemory",
+          "group": "navigation"
         }
       ]
     }
@@ -182,7 +197,8 @@
     "bundle": "node esbuild.mjs",
     "build": "npm run typecheck && npm run bundle",
     "package": "vsce package --no-dependencies",
-    "test": "npm run build && node test/runTest.js"
+    "test:render": "node test/render.test.mjs",
+    "test": "npm run build && npm run test:render && node test/runTest.js"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
