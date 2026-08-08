@@ -23,7 +23,12 @@ import {
   boardInfo, chipInfo, clockGraph, cloneBoard, currentBoard, workspaceRoot,
 } from "./cli";
 
-export async function configureBoard(refresh: () => void): Promise<void> {
+/** `extensionUri` comes from activate(): VS Code already knows where we are
+ *  installed. Looking ourselves up by a hardcoded "publisher.name" was one
+ *  rename away from a panel that could not find its own CSS — and the
+ *  marketplace forced exactly that rename (alloy-vscode is taken). */
+export async function configureBoard(refresh: () => void,
+                                     extensionUri: vscode.Uri): Promise<void> {
   const root = workspaceRoot();
   if (!root) {
     void vscode.window.showWarningMessage("Open an alloy project first (alloy.toml).");
@@ -40,11 +45,11 @@ export async function configureBoard(refresh: () => void): Promise<void> {
     {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(extensionUri(), "dist"),
-                           vscode.Uri.joinPath(extensionUri(), "media")],
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, "dist"),
+                           vscode.Uri.joinPath(extensionUri, "media")],
     },
   );
-  panel.webview.html = shellHtml(panel.webview, { detail, chip, board });
+  panel.webview.html = shellHtml(panel.webview, { detail, chip, board }, extensionUri);
 
   panel.webview.onDidReceiveMessage(async (msg: {
     type: string; mhz?: number; profile?: string; board?: BoardJson | null;
@@ -79,7 +84,7 @@ export async function configureBoard(refresh: () => void): Promise<void> {
       refresh();
       void vscode.window.showInformationMessage(
         `Board “${newId}” is now yours to edit.`);
-      await configureBoard(refresh);
+      await configureBoard(refresh, extensionUri);
       return;
     }
 
@@ -110,14 +115,6 @@ export async function configureBoard(refresh: () => void): Promise<void> {
   });
 }
 
-function extensionUri(): vscode.Uri {
-  const ext = vscode.extensions.getExtension("alloy-embedded.alloy-vscode");
-  if (!ext) {
-    throw new Error("alloy extension not found — cannot resolve its resources");
-  }
-  return ext.extensionUri;
-}
-
 function mhz(hz: number | null): string {
   return hz ? `${Math.round(hz / 1_000_000)} MHz` : "?";
 }
@@ -131,13 +128,14 @@ function esc(s: string): string {
  * The static page. Everything dynamic is rendered by the webview bundle from
  * the payload below; this only lays out the containers it fills.
  */
-function shellHtml(webview: vscode.Webview, data: EditorData): string {
+function shellHtml(webview: vscode.Webview, data: EditorData,
+                   extensionUri: vscode.Uri): string {
   const nonce = Array.from({ length: 32 },
     () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
   const script = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri(), "dist", "webview.js"));
+    vscode.Uri.joinPath(extensionUri, "dist", "webview.js"));
   const style = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri(), "media", "board-editor.css"));
+    vscode.Uri.joinPath(extensionUri, "media", "board-editor.css"));
 
   const { detail, chip, board } = data;
   const readOnly = !detail.editable;

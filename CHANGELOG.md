@@ -2,6 +2,12 @@
 
 ## 0.2.0 — 2026-08-07
 
+Published as **`alloy-embedded.alloy-embedded`**, matching the CLI's PyPI name.
+The marketplace requires globally unique extension names and `alloy-vscode` is
+taken by an unrelated publisher; the id also disambiguates this from the several
+extensions for the Alloy formal specification language, which it has nothing to
+do with.
+
 First release published to the marketplace. Everything below already worked
 against a source checkout; this is the version a stranger can install.
 

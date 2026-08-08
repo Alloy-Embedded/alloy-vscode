@@ -78,7 +78,8 @@ export function activate(context: vscode.ExtensionContext): void {
         addLibrary(() => libraries.refresh(), typeof name === "string" ? name : undefined))),
     vscode.commands.registerCommand("alloy.updateDevice", wrap(updateDevice)),
     vscode.commands.registerCommand("alloy.configureBoard",
-      wrap(() => configureBoard(() => { actions.refresh(); statusBar.refresh(); }))),
+      wrap(() => configureBoard(() => { actions.refresh(); statusBar.refresh(); },
+                                context.extensionUri))),
   );
 
   // A freshly-scaffolded custom board opens the visual configurator once its

@@ -14,7 +14,12 @@ async function waitFor(cond, ms) {
 
 describe("alloy-vscode smoke", () => {
   it("activates on the alloy.toml workspace", async () => {
-    const ext = vscode.extensions.getExtension("alloy-embedded.alloy-vscode");
+    // Derived, never typed twice: this test exists to catch a broken activation,
+    // and a hardcoded id would just fail with the same message when the id itself
+    // is what changed.
+    const manifest = require("../../package.json");
+    const ext = vscode.extensions.getExtension(
+      `${manifest.publisher}.${manifest.name}`);
     assert.ok(ext, "extension not found");
     await ext.activate();
     assert.ok(ext.isActive, "extension did not activate");
