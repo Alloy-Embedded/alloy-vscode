@@ -60,6 +60,26 @@ jobs:
             console.log(`ok — this extension requires alloy-embedded ${want}, which is published`);
           ' "$min"
 
+      # Two release cycles were burned on a rename that reached package-lock.json
+      # and not package.json: `vsce publish` is the FIRST thing that reads the
+      # name, so the mismatch surfaced only after tests, packaging, and a tag.
+      - name: sanity — the extension id is what we think it is
+        run: |
+          node -e '
+            const pkg = require("./package.json");
+            const lock = require("./package-lock.json");
+            const id = `${pkg.publisher}.${pkg.name}`;
+            if (lock.name !== pkg.name) {
+              console.error(`package-lock name ${lock.name} != package.json ${pkg.name}`);
+              process.exit(1);
+            }
+            if (!pkg.publisher || !pkg.name) {
+              console.error("publisher and name are both required to publish");
+              process.exit(1);
+            }
+            console.log(`publishing as ${id}`);
+          '
+
       - name: typecheck
         run: npm run typecheck
 

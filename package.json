@@ -1,5 +1,5 @@
 {
-  "name": "alloy-vscode",
+  "name": "alloy-embedded",
   "displayName": "Alloy Embedded",
   "description": "Configure, build, flash and debug embedded C++ from the editor \u2014 one portable app source, any supported MCU.",
   "version": "0.2.0",
