@@ -1,0 +1,55 @@
+<svg viewBox="0 0 400 190" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- The configurator: the physical package on the left, the role that owns
+       each pin on the right, and a problem reported where it happens. -->
+  <g stroke="currentColor" stroke-width="1.3" opacity="0.85">
+    <rect x="46" y="46" width="82" height="82" rx="4"/>
+  </g>
+  <!-- pin stubs on all four sides -->
+  <g stroke="currentColor" stroke-width="1.3" opacity="0.55" stroke-linecap="round">
+    <path d="M34 60h12M34 74h12M34 88h12M34 102h12M34 116h12"/>
+    <path d="M128 60h12M128 74h12M128 88h12M128 102h12M128 116h12"/>
+    <path d="M60 34v12M74 34v12M88 34v12M102 34v12M116 34v12"/>
+    <path d="M60 128v12M74 128v12M88 128v12M102 128v12M116 128v12"/>
+  </g>
+  <!-- two pins already claimed by a role -->
+  <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <path d="M128 74h12"/>
+    <path d="M128 88h12"/>
+  </g>
+  <text x="87" y="91" text-anchor="middle" fill="currentColor" opacity="0.5"
+        font-family="var(--vscode-editor-font-family)" font-size="9">LQFP64</text>
+
+  <!-- the role panel -->
+  <g stroke="currentColor" stroke-width="1.3" opacity="0.85">
+    <rect x="176" y="40" width="196" height="46" rx="5"/>
+    <rect x="176" y="96" width="196" height="46" rx="5"/>
+  </g>
+  <g fill="currentColor" font-family="var(--vscode-font-family)" font-size="11">
+    <text x="188" y="58" opacity="0.95">Debug UART</text>
+    <text x="188" y="76" opacity="0.6" font-size="10">usart2 · pa2 / pa3 · 115200</text>
+    <text x="188" y="114" opacity="0.95">I²C</text>
+    <text x="228" y="114" opacity="0.6" font-size="10">i2c1 · scl</text>
+    <text x="288" y="114" opacity="0.95" font-size="10">pb6</text>
+  </g>
+  <!-- The problem, reported on the field that caused it: a marked box, not a
+       banner somewhere else. -->
+  <g stroke="currentColor" stroke-width="1.3" opacity="0.9">
+    <rect x="284" y="104" width="30" height="14" rx="2"/>
+  </g>
+  <g stroke="currentColor" stroke-width="1.2" opacity="0.9" stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M191 126.5l5.5 9.5h-11z"/>
+    <path d="M191 130v2.5"/>
+  </g>
+  <text x="203" y="135" fill="currentColor" opacity="0.75"
+        font-family="var(--vscode-font-family)" font-size="9.5">pb6 has no route to i2c1</text>
+
+  <text x="200" y="168" text-anchor="middle" fill="currentColor" opacity="0.72"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    A pin the silicon cannot route is a build error you meet here,
+  </text>
+  <text x="200" y="183" text-anchor="middle" fill="currentColor" opacity="0.72"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    with the pins that would work as one-click fixes.
+  </text>
+</svg>

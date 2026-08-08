@@ -2,7 +2,7 @@
   "name": "alloy-embedded",
   "displayName": "Alloy Embedded",
   "description": "Configure, build, flash and debug embedded C++ from the editor \u2014 one portable app source, any supported MCU.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "alloy-embedded",
   "repository": {
     "type": "git",
@@ -215,7 +215,82 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "alloy.getStarted",
+        "title": "Get started with Alloy",
+        "description": "From nothing installed to the same firmware running on nine boards \u2014 no hardware required for any of it.",
+        "featuredFor": [
+          "alloy.toml"
+        ],
+        "steps": [
+          {
+            "id": "cli",
+            "title": "Install the alloy CLI",
+            "description": "This extension holds no knowledge of silicon: every board, pin and clock it shows comes from the `alloy` CLI over versioned JSON. Install it once and the Toolchains view turns green.\n[Setup Environment](command:alloy.setup)",
+            "media": {
+              "svg": "media/walkthrough/cli.svg",
+              "altText": "The extension asks the CLI, which reads a curated silicon database"
+            },
+            "completionEvents": [
+              "onCommand:alloy.setup",
+              "onCommand:alloy.installTools"
+            ]
+          },
+          {
+            "id": "project",
+            "title": "Start from a real board",
+            "description": "Pick one of the curated boards and get a project whose pins, clock and linker script are already right. The board is one line of `alloy.toml` \u2014 change it and the same `main.cpp` targets another MCU.\n[New Project](command:alloy.newProject)",
+            "media": {
+              "svg": "media/walkthrough/board.svg",
+              "altText": "A board list, and the one line of alloy.toml that selects one"
+            },
+            "completionEvents": [
+              "onCommand:alloy.newProject",
+              "onCommand:alloy.pickBoard"
+            ]
+          },
+          {
+            "id": "configure",
+            "title": "Open the chip, not a form",
+            "description": "The package with its real pinout, every board role the silicon can fill, and the whole clock tree. A pin with no route to its peripheral is a build error you meet here instead \u2014 with the pins that would work as one-click fixes.\n[Configure Board](command:alloy.configureBoard)",
+            "media": {
+              "svg": "media/walkthrough/configure.svg",
+              "altText": "A chip package beside its role panel, with a problem reported on the field that caused it"
+            },
+            "completionEvents": [
+              "onCommand:alloy.configureBoard"
+            ]
+          },
+          {
+            "id": "emulate",
+            "title": "Run it with no hardware",
+            "description": "Renode runs the same `.elf` the flasher would write, and the device's UART comes back as text. Useful before the hardware arrives \u2014 and in CI forever after.\n[Emulate (Renode)](command:alloy.emulate)",
+            "media": {
+              "svg": "media/walkthrough/emulate.svg",
+              "altText": "An .elf running under Renode with no board attached, printing over UART"
+            },
+            "completionEvents": [
+              "onCommand:alloy.emulate",
+              "onCommand:alloy.build"
+            ]
+          },
+          {
+            "id": "matrix",
+            "title": "Check the claim",
+            "description": "One `src/`, every board you target, two instruction sets, with flash and RAM side by side. Portability is easy to assert and this is it measured \u2014 a board that fails is a row with a reason.\n[Build All Boards](command:alloy.buildAll)",
+            "media": {
+              "svg": "media/walkthrough/matrix.svg",
+              "altText": "One source tree building for five boards, each with its size"
+            },
+            "completionEvents": [
+              "onCommand:alloy.buildAll"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -224,7 +299,7 @@
     "package": "vsce package --no-dependencies",
     "test:render": "node test/render.test.mjs",
     "test": "npm run build && npm run test:unit && node test/runTest.js",
-    "test:unit": "node test/version-gate.test.mjs && npm run test:render"
+    "test:unit": "node test/version-gate.test.mjs && node test/manifest.test.mjs && npm run test:render"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -1,0 +1,49 @@
+<svg viewBox="0 0 400 190" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Run the real firmware with nothing plugged in: Renode executes the same
+       .elf the flasher would write, and the UART comes back as text. -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="26" y="52" width="112" height="70" rx="6"/>
+  </g>
+  <g fill="currentColor" font-family="var(--vscode-editor-font-family)" font-size="10">
+    <text x="82" y="82" text-anchor="middle" opacity="0.95">blink.elf</text>
+    <text x="82" y="99" text-anchor="middle" opacity="0.5">3.1K flash</text>
+  </g>
+
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.75">
+    <path d="M138 87h30" stroke-linecap="round"/>
+    <path d="M162 82l6 5-6 5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- the emulated part -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="176" y="52" width="90" height="70" rx="6"/>
+  </g>
+  <text x="221" y="83" text-anchor="middle" fill="currentColor" opacity="0.95"
+        font-family="var(--vscode-font-family)" font-size="11">Renode</text>
+  <text x="221" y="99" text-anchor="middle" fill="currentColor" opacity="0.5"
+        font-family="var(--vscode-font-family)" font-size="9.5">no board attached</text>
+
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.75">
+    <path d="M276 87h26" stroke-linecap="round"/>
+    <path d="M296 82l6 5-6 5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- what comes back -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="310" y="52" width="66" height="70" rx="6"/>
+  </g>
+  <g fill="currentColor" font-family="var(--vscode-editor-font-family)" font-size="8.5" opacity="0.8">
+    <text x="320" y="72">led on</text>
+    <text x="320" y="87">led off</text>
+    <text x="320" y="102">led on</text>
+  </g>
+
+  <text x="200" y="160" text-anchor="middle" fill="currentColor" opacity="0.72"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    The same binary the flasher would write, running now.
+  </text>
+  <text x="200" y="177" text-anchor="middle" fill="currentColor" opacity="0.55"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    Useful before the hardware arrives, and in CI forever after.
+  </text>
+</svg>

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-08-08
+
+### A way in
+
+- **Get started with Alloy** — a five-step walkthrough, featured the moment a
+  workspace has an `alloy.toml`. It goes from nothing installed to the same
+  firmware built for nine boards, and none of it needs hardware: install the
+  CLI, start from a curated board, open the chip, run it under Renode, then
+  check the portability claim with Build All Boards.
+- The extension contributes 23 commands and had no guided path to the first
+  one. This is that path.
+
 ## 0.2.0 — 2026-08-07
 
 Published as **`alloy-embedded.alloy-embedded`**, matching the CLI's PyPI name.

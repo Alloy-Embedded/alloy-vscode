@@ -1,0 +1,39 @@
+<svg viewBox="0 0 400 190" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Why you start from a curated board: the pin choices are already right,
+       and one line in alloy.toml is what selects the whole target. -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="30" y="34" width="150" height="42" rx="5"/>
+    <rect x="30" y="86" width="150" height="42" rx="5"/>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.35" stroke-dasharray="3 3">
+    <rect x="30" y="138" width="150" height="30" rx="5"/>
+  </g>
+
+  <g fill="currentColor" font-family="var(--vscode-font-family)" font-size="11.5">
+    <text x="44" y="53" opacity="0.95">nucleo_g071rb</text>
+    <text x="44" y="68" opacity="0.55" font-size="10">Cortex-M0+ · 128K</text>
+    <text x="44" y="105" opacity="0.95">esp32_devkit</text>
+    <text x="44" y="120" opacity="0.55" font-size="10">Xtensa · Wi-Fi</text>
+    <text x="44" y="157" opacity="0.45">…nine boards</text>
+  </g>
+
+  <!-- The selection lands as one line of config. -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.75">
+    <path d="M180 55h34" stroke-linecap="round"/>
+    <path d="M208 50l6 5-6 5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="222" y="34" width="152" height="52" rx="5"/>
+  </g>
+  <g fill="currentColor" font-family="var(--vscode-editor-font-family)" font-size="10">
+    <text x="234" y="52" opacity="0.55">[board]</text>
+    <text x="234" y="68" opacity="0.95">id = "nucleo_g071rb"</text>
+  </g>
+  <text x="298" y="100" text-anchor="middle" fill="currentColor" opacity="0.5"
+        font-family="var(--vscode-font-family)" font-size="10">alloy.toml</text>
+
+  <text x="200" y="185" text-anchor="middle" fill="currentColor" opacity="0.72"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    Change that line and the same main.cpp targets another MCU.
+  </text>
+</svg>

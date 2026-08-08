@@ -1,0 +1,50 @@
+<svg viewBox="0 0 400 190" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- The framework's central claim, checked rather than asserted: one src/,
+       every board, two instruction sets, sizes side by side. -->
+  <g stroke="currentColor" stroke-width="1.4" opacity="0.9">
+    <rect x="20" y="72" width="74" height="44" rx="5"/>
+  </g>
+  <g fill="currentColor" font-family="var(--vscode-editor-font-family)" font-size="10">
+    <text x="57" y="92" text-anchor="middle" opacity="0.95">src/</text>
+    <text x="57" y="107" text-anchor="middle" opacity="0.5">no #ifdef</text>
+  </g>
+
+  <!-- fan out -->
+  <g stroke="currentColor" stroke-width="1.3" opacity="0.6" stroke-linecap="round">
+    <path d="M94 94h22M116 94V40h20"/>
+    <path d="M116 94v-27h20"/>
+    <path d="M116 94h20"/>
+    <path d="M116 94v27h20"/>
+    <path d="M116 94v54h20"/>
+  </g>
+
+  <!-- the rows: board, then flash/ram -->
+  <g fill="currentColor" font-family="var(--vscode-editor-font-family)" font-size="9.5">
+    <text x="142" y="44" opacity="0.9">nucleo_g071rb</text>
+    <text x="142" y="71" opacity="0.9">nucleo_f767zi</text>
+    <text x="142" y="98" opacity="0.9">same70_xplained</text>
+    <text x="142" y="125" opacity="0.9">raspberry_pi_pico</text>
+    <text x="142" y="152" opacity="0.9">esp32_devkit</text>
+
+    <text x="376" y="44" text-anchor="end" opacity="0.55">3.3K</text>
+    <text x="376" y="71" text-anchor="end" opacity="0.55">3.2K</text>
+    <text x="376" y="98" text-anchor="end" opacity="0.55">2.9K</text>
+    <text x="376" y="125" text-anchor="end" opacity="0.55">3.2K</text>
+    <text x="376" y="152" text-anchor="end" opacity="0.55">3.1K</text>
+  </g>
+
+  <!-- every row passed -->
+  <g stroke="currentColor" stroke-width="1.6" opacity="0.85" stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M290 41l4 4 7-8"/>
+    <path d="M290 68l4 4 7-8"/>
+    <path d="M290 95l4 4 7-8"/>
+    <path d="M290 122l4 4 7-8"/>
+    <path d="M290 149l4 4 7-8"/>
+  </g>
+
+  <text x="200" y="181" text-anchor="middle" fill="currentColor" opacity="0.72"
+        font-family="var(--vscode-font-family)" font-size="11.5">
+    Two instruction sets, one source tree. That is the claim, and this checks it.
+  </text>
+</svg>

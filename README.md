@@ -14,6 +14,12 @@ int main() {
 }
 ```
 
+## Start here
+
+**Get started with Alloy** (Help → Get Started, or the Welcome page) walks the
+first project end to end — CLI, board, configurator, emulator, and the
+nine-board build — without any hardware attached.
+
 ## Configure the board
 
 **Alloy: Configure Board** opens the chip, not a form:
