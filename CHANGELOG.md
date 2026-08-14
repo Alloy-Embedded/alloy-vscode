@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **The monitor panel understands `libs/bus` datagrams.** A project with a
+  `bus.toml` sees its messages in the log — `[bus] reading seq=12
+  centi_c=2543 ok=true` — on the same timeline as the printf output that
+  surrounds them, marked apart from it, with an id the manifest could not
+  name dimmed further (that is the state you opened the panel to notice).
+  Because fields render as `name=value`, numeric telemetry flows into the
+  existing sparklines and the filter box works on messages like any other
+  line — no new UI, no new plumbing.
+
+  No frame parsing landed in TypeScript: `alloy monitor --json` decodes
+  against the project's own registry and streams decoded messages, so the
+  panel renders what the CLI already understood (guardrail #1). That also
+  means no manifest fetch — the extension needs no new CLI call at all.
+  Requires an alloy CLI new enough to decode; older ones simply stream the
+  frames as the raw text they always did.
+
 ## 0.3.0 — 2026-08-08
 
 ### A way in

@@ -299,7 +299,8 @@
     "package": "vsce package --no-dependencies",
     "test:render": "node test/render.test.mjs",
     "test": "npm run build && npm run test:unit && node test/runTest.js",
-    "test:unit": "node test/version-gate.test.mjs && node test/manifest.test.mjs && npm run test:render"
+    "test:unit": "node test/version-gate.test.mjs && node test/manifest.test.mjs && npm run test:render && npm run test:monitor",
+    "test:monitor": "node test/monitor.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

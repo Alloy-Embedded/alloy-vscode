@@ -45,6 +45,14 @@ button:focus-visible, input:focus-visible {
 }
 .mline { display: flex; gap: 10px; white-space: pre-wrap; word-break: break-word; }
 .mline.partial .mx { opacity: .7; font-style: italic; }
+/* Decoded bus datagrams: the device's MESSAGES, not its printf. A left rule
+   separates them from log text at a glance without stealing colour from the
+   editor theme; an id the manifest could not name is dimmed further, because
+   that is the state you opened the panel to notice. */
+.mline.bus .mx { border-left: 2px solid var(--vscode-textLink-foreground);
+                 padding-left: 6px; }
+.mline.bus.unnamed .mx { border-left-color: var(--vscode-descriptionForeground);
+                         opacity: .8; }
 .mt {
   color: var(--vscode-descriptionForeground); flex: none;
   font-variant-numeric: tabular-nums; user-select: none;

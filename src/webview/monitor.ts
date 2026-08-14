@@ -17,10 +17,16 @@ export function renderLines(lines: MonitorLine[], filter: string): string {
     return `<div class="mempty">${
       lines.length ? "nothing matches this filter" : "waiting for the device…"}</div>`;
   }
-  return shown.map((entry) =>
-    `<div class="mline${entry.partial ? " partial" : ""}">`
-    + `<span class="mt">${esc(stamp(entry.t))}</span>`
-    + `<span class="mx">${esc(entry.line)}</span></div>`).join("");
+  return shown.map((entry) => {
+    // A decoded bus datagram reads differently from a log line — it is the
+    // device's messages, not its printf — so it is marked, and an id the
+    // manifest could not name is marked again (that is the case you are
+    // staring at the panel to find).
+    const kind = entry.bus ? ` bus${entry.bus.name ? "" : " unnamed"}` : "";
+    return `<div class="mline${entry.partial ? " partial" : ""}${kind}">`
+      + `<span class="mt">${esc(stamp(entry.t))}</span>`
+      + `<span class="mx">${esc(entry.line)}</span></div>`;
+  }).join("");
 }
 
 export function renderSeries(lines: MonitorLine[]): string {

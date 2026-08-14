@@ -7,6 +7,51 @@ export interface MonitorLine {
   t: number;
   line: string;
   partial?: boolean;
+  bus?: BusMessage;
+}
+
+/**
+ * One libs/bus datagram the CLI already decoded. Nothing here parses a
+ * frame: `alloy monitor --json` owns the wire format and the project's
+ * bus.toml, and hands over named fields — the extension renders, it does
+ * not understand protocols (guardrail #1).
+ *
+ * `name`/`fields` are absent when the manifest cannot name the id or its
+ * layout disagrees; then `raw` carries the body as hex and `note` says what
+ * the manifest expected. A monitor that went blank exactly when the two
+ * ends of a link disagree would be useless at the only moment it matters.
+ */
+export interface BusMessage {
+  id: number;
+  ver: number;
+  seq: number;
+  name?: string;
+  fields?: Record<string, number | boolean>;
+  raw?: string;
+  note?: string;
+}
+
+/**
+ * The log text for a decoded datagram.
+ *
+ * Deliberately `name=value` in decimal: that is the shape collectSeries
+ * already mines, so a telemetry message charts itself with no extra
+ * plumbing, and the filter box works on bus messages like any other line.
+ */
+export function busLine(m: BusMessage): string {
+  const head = m.name ?? `0x${m.id.toString(16).padStart(4, "0").toUpperCase()}`;
+  const parts = [`[bus] ${head}`, `seq=${m.seq}`];
+  if (m.fields) {
+    for (const [key, value] of Object.entries(m.fields)) {
+      parts.push(`${key}=${typeof value === "boolean" ? String(value) : value}`);
+    }
+  } else {
+    parts.push(`raw=${m.raw ?? ""}`);
+  }
+  if (m.note) {
+    parts.push(`(${m.note})`);
+  }
+  return parts.join("  ");
 }
 
 export interface Series {

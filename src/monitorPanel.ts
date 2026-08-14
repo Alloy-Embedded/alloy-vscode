@@ -9,7 +9,7 @@
 import { ChildProcess, spawn } from "node:child_process";
 import * as vscode from "vscode";
 import { findCli, output, workspaceRoot } from "./cli";
-import { MonitorLine } from "./shared/monitor";
+import { BusMessage, MonitorLine, busLine } from "./shared/monitor";
 
 let panel: vscode.WebviewPanel | undefined;
 let child: ChildProcess | undefined;
@@ -65,13 +65,23 @@ export async function openMonitor(extensionUri: vscode.Uri): Promise<void> {
         continue;
       }
       try {
-        const obj = JSON.parse(part) as MonitorLine & { event?: string; message?: string; port?: string; baud?: number };
+        const obj = JSON.parse(part) as MonitorLine & {
+          event?: string; message?: string; port?: string; baud?: number;
+          bus_decode?: boolean; bus?: BusMessage;
+        };
         if (obj.event === "open") {
-          post({ type: "status", text: `${obj.port} @ ${obj.baud}` });
+          post({ type: "status", text: `${obj.port} @ ${obj.baud}`
+            + (obj.bus_decode ? " · bus" : "") });
         } else if (obj.event === "error") {
           post({ type: "status", text: `error: ${obj.message}` });
         } else if (obj.event === "closed") {
           post({ type: "status", text: "closed" });
+        } else if (obj.bus) {
+          // A decoded datagram joins the log on the SAME timeline as the
+          // text around it — that adjacency is the whole point, and it
+          // makes the filter and the sparklines work on bus fields for free.
+          pending.push({ t: obj.t, line: busLine(obj.bus), bus: obj.bus });
+          schedule();
         } else if (typeof obj.line === "string") {
           pending.push(obj);
           schedule();
